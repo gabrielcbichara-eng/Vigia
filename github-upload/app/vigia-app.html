@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>VIGIA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --verde:#1DB954;--verde-esc:#148f3e;--vermelho:#e74c3c;--laranja:#f39c12;
+  --bg:#1a1a2e;--card:#16213e;--card2:#0f1f3d;--borda:rgba(255,255,255,0.08);
+  --texto:#ffffff;--suave:#8892a4;--raio:16px;
+}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--texto);}
+
+/* ── SHELL ── */
+#shell{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+/* ── TOPBAR ── */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;background:rgba(26,26,46,.97);border-bottom:1px solid var(--borda);z-index:1000;flex-shrink:0;}
+.logo{font-size:1.3rem;font-weight:900;color:var(--verde);letter-spacing:3px;}
+.logo span{color:#fff;}
+
+/* ── TABS ── */
+#tabs{display:flex;background:rgba(26,26,46,.97);border-bottom:1px solid var(--borda);flex-shrink:0;}
+.tab{flex:1;padding:.6rem .3rem;text-align:center;font-size:.72rem;font-weight:600;color:var(--suave);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.3px;}
+.tab.ativo{color:var(--verde);border-color:var(--verde);}
+
+/* ── SCREENS ── */
+#screens{flex:1;position:relative;overflow:hidden;}
+.screen{position:absolute;inset:0;display:none;}
+.screen.ativo{display:block;}
+
+/* ── MAPA ── */
+#mapa{width:100%;height:100%;}
+#btn-add{position:absolute;bottom:24px;left:16px;z-index:500;width:52px;height:52px;border-radius:50%;background:var(--verde);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(29,185,84,.5);font-size:1.6rem;color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;}
+#btn-add:hover{transform:scale(1.1);}
+#menu-add{position:absolute;bottom:84px;left:16px;z-index:500;background:rgba(22,33,62,.97);border:1px solid var(--borda);border-radius:12px;padding:.5rem;min-width:170px;display:none;backdrop-filter:blur(10px);}
+#menu-add.aberto{display:block;animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.menu-item{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;transition:background .2s;}
+.menu-item:hover{background:rgba(29,185,84,.15);color:var(--verde);}
+
+/* Modo selecionar localização no mapa */
+#crosshair-overlay{position:absolute;inset:0;z-index:490;display:none;background:rgba(29,185,84,.06);pointer-events:none;}
+#crosshair-overlay.ativo{display:block;}
+#crosshair-hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(29,185,84,.9);color:#fff;padding:.5rem 1.1rem;border-radius:20px;font-size:.82rem;font-weight:700;white-space:nowrap;pointer-events:none;z-index:495;}
+
+/* ── SPLASH LOCALIZAÇÃO ── */
+#splash{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0d1b2a 0%,#1a2e1a 100%);display:flex;align-items:center;justify-content:center;transition:opacity .5s ease;}
+#splash.saindo{opacity:0;pointer-events:none;}
+#splash-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:2.5rem 2rem;max-width:340px;width:90%;text-align:center;backdrop-filter:blur(20px);}
+.splash-logo{font-size:2rem;font-weight:900;color:var(--verde);letter-spacing:4px;margin-bottom:.5rem;}
+.splash-logo span{color:#fff;}
+.splash-icon{font-size:3.5rem;margin:.8rem 0;}
+.splash-titulo{font-size:1.2rem;font-weight:800;color:#fff;margin-bottom:.6rem;}
+.splash-sub{font-size:.85rem;color:#8892a4;line-height:1.5;margin-bottom:1.8rem;}
+#btn-splash-permitir{width:100%;padding:.9rem;border-radius:14px;background:var(--verde);border:none;color:#fff;font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:.7rem;transition:transform .15s,opacity .15s;}
+#btn-splash-permitir:hover{transform:scale(1.02);}
+#btn-splash-pular{width:100%;padding:.55rem;border-radius:14px;background:transparent;border:1px solid rgba(255,255,255,.15);color:#8892a4;font-size:.82rem;cursor:pointer;transition:color .2s,border-color .2s;}
+#btn-splash-pular:hover{color:#fff;border-color:rgba(255,255,255,.35);}
+
+/* IRR pins — sombra extra para visibilidade sobre satélite */
+.irr-pin{background:var(--vermelho);color:#fff;font-weight:800;font-size:.7rem;padding:.2rem .45rem;border-radius:10px;white-space:nowrap;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 10px rgba(0,0,0,.7),0 0 0 1px rgba(0,0,0,.3);text-shadow:0 1px 3px rgba(0,0,0,.6);}
+.irr-pin.medio{background:var(--laranja);}
+.irr-pin.baixo{background:#27ae60;}
+.leaflet-popup-content-wrapper{background:rgba(22,33,62,.98)!important;color:#fff!important;border:1px solid var(--borda)!important;border-radius:12px!important;box-shadow:0 8px 30px rgba(0,0,0,.5)!important;}
+.leaflet-popup-tip{background:rgba(22,33,62,.98)!important;}
+.popup-tipo{font-size:.7rem;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:1px;margin-bottom:.3rem;}
+.popup-desc{font-size:.85rem;color:#c8d0da;margin:.3rem 0;}
+.popup-loc{font-size:.75rem;color:var(--suave);margin:.2rem 0;}
+.popup-irr{display:inline-block;background:var(--vermelho);color:#fff;font-weight:800;font-size:.8rem;padding:.2rem .6rem;border-radius:10px;margin-top:.3rem;}
+.popup-irr.medio{background:var(--laranja);}
+.popup-irr.baixo{background:#27ae60;}
+.popup-anon{font-size:.72rem;color:var(--suave);margin-top:.4rem;}
+
+/* ── MODAL DENÚNCIA ── */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:800;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+#overlay.aberto{display:flex;}
+#modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;padding:1.2rem 1.2rem 2rem;animation:slideUp .3s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto .8rem;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.modal-titulo{font-size:1.05rem;font-weight:800;}
+#btn-fechar{background:none;border:none;color:var(--suave);font-size:1.4rem;cursor:pointer;padding:.2rem;}
+
+/* Banner de conta conectada */
+#banner-conta{display:none;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.3);border-radius:10px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:.82rem;color:var(--verde);font-weight:600;}
+
+#btn-anonimo{width:100%;padding:.6rem;border-radius:10px;margin-bottom:1rem;background:rgba(29,185,84,.1);border:1px dashed rgba(29,185,84,.4);color:var(--verde);font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s;}
+#btn-anonimo:hover{background:rgba(29,185,84,.2);}
+#btn-anonimo.ativo{background:rgba(29,185,84,.25);border-style:solid;}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.7rem;}
+.form-row.single{grid-template-columns:1fr;}
+.campo label{display:block;font-size:.73rem;font-weight:700;color:var(--suave);margin-bottom:.3rem;letter-spacing:.5px;text-transform:uppercase;}
+.campo input,.campo select,.campo textarea{width:100%;padding:.7rem .85rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.9rem;outline:none;transition:border-color .2s;font-family:inherit;}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--verde);}
+.campo select option{background:var(--card);}
+.campo textarea{resize:none;height:80px;}
+.campo input:disabled,.campo select:disabled{opacity:.4;pointer-events:none;}
+.campo input.preenchido-perfil{background:rgba(29,185,84,.07);border-color:rgba(29,185,84,.3);color:rgba(255,255,255,.7);}
+
+/* Localização */
+#sec-localizacao{margin-bottom:.9rem;}
+#sec-localizacao .campo label{margin-bottom:.5rem;}
+.loc-btns{display:flex;gap:.5rem;margin-bottom:.6rem;}
+.loc-btn{flex:1;padding:.55rem .4rem;border-radius:10px;border:1px solid var(--borda);background:rgba(255,255,255,.05);color:var(--suave);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+.loc-btn:hover,.loc-btn.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);color:var(--verde);}
+#loc-status{font-size:.78rem;padding:.55rem .85rem;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--borda);color:var(--suave);min-height:36px;display:flex;align-items:center;gap:.5rem;}
+#loc-status.ok{background:rgba(29,185,84,.08);border-color:rgba(29,185,84,.3);color:var(--verde);}
+#loc-status.erro{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.3);color:var(--vermelho);}
+
+/* Endereço manual */
+#busca-endereco-row{display:flex;gap:.5rem;margin-top:.5rem;}
+#busca-endereco-row input{flex:1;padding:.6rem .85rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.87rem;outline:none;font-family:inherit;}
+#busca-endereco-row input:focus{border-color:var(--verde);}
+#btn-buscar-end{padding:.6rem .9rem;border-radius:10px;background:var(--verde);border:none;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+
+/* Upload foto */
+#area-foto{border:2px dashed rgba(255,255,255,.15);border-radius:12px;padding:1.2rem;text-align:center;cursor:pointer;margin-bottom:1rem;transition:border-color .2s;background:rgba(255,255,255,.03);}
+#area-foto:hover{border-color:var(--verde);}
+#area-foto.tem-foto{border-color:var(--verde);background:rgba(29,185,84,.07);}
+#area-foto .foto-icon{font-size:2rem;margin-bottom:.4rem;}
+#area-foto p{font-size:.82rem;color:var(--suave);}
+#area-foto p strong{color:var(--texto);}
+#input-foto{display:none;}
+#preview-foto{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:.6rem;display:none;}
+
+#btn-denunciar{width:100%;padding:.9rem;border-radius:30px;margin-top:.8rem;background:var(--vermelho);border:none;color:#fff;font-size:1rem;font-weight:800;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 20px rgba(231,76,60,.4);transition:all .2s;}
+#btn-denunciar:hover{background:#c0392b;transform:translateY(-1px);}
+
+/* ── MODAL SUCESSO ── */
+#overlay-sucesso{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:1.5rem;}
+#overlay-sucesso.aberto{display:flex;}
+#modal-sucesso{background:var(--card);border-radius:20px;width:100%;max-width:400px;padding:2rem 1.5rem;text-align:center;border:1px solid rgba(29,185,84,.3);animation:popIn .3s ease;max-height:90vh;overflow-y:auto;}
+@keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.sucesso-emoji{font-size:3rem;margin-bottom:.6rem;}
+.sucesso-titulo{font-size:1.2rem;font-weight:800;margin-bottom:.4rem;}
+.sucesso-desc{font-size:.85rem;color:var(--suave);line-height:1.6;margin-bottom:1rem;}
+.sucesso-irr{background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);border-radius:12px;padding:1rem;margin-bottom:1rem;}
+.sucesso-irr-label{font-size:.7rem;color:var(--suave);text-transform:uppercase;letter-spacing:1px;}
+.sucesso-irr-num{font-size:2.4rem;font-weight:900;color:var(--vermelho);}
+.sucesso-irr-why{font-size:.76rem;color:#c8d0da;line-height:1.5;margin-top:.4rem;}
+.orgao-box{background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.2);border-radius:12px;padding:1rem;text-align:left;margin-bottom:1rem;}
+.orgao-box h4{font-size:.78rem;font-weight:700;color:var(--verde);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.5px;}
+.orgao-linha{font-size:.82rem;color:#c8d0da;margin:.3rem 0;display:flex;align-items:center;gap:.5rem;}
+.orgao-nome{font-weight:700;color:#fff;font-size:.9rem;margin-bottom:.3rem;}
+#btn-fechar-sucesso{width:100%;padding:.8rem;border-radius:25px;background:var(--verde);border:none;color:#fff;font-weight:700;cursor:pointer;transition:background .2s;}
+#btn-fechar-sucesso:hover{background:var(--verde-esc);}
+
+/* ── FÓRUM ── */
+#screen-forum{overflow-y:auto;background:var(--bg);padding:.8rem;}
+.forum-header{background:var(--card);border-radius:var(--raio);padding:1rem;margin-bottom:.8rem;border:1px solid var(--borda);}
+.forum-header h2{font-size:1rem;font-weight:800;margin-bottom:.3rem;}
+.forum-header p{font-size:.8rem;color:var(--suave);}
+.post{background:var(--card);border-radius:var(--raio);padding:1rem;margin-bottom:.75rem;border:1px solid var(--borda);}
+.post-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;}
+.post-usuario{font-size:.82rem;font-weight:700;}
+.post-tempo{font-size:.72rem;color:var(--suave);}
+.post-tag{display:inline-block;padding:.15rem .55rem;border-radius:10px;font-size:.7rem;font-weight:700;margin-bottom:.5rem;}
+.post-tag.esgoto{background:rgba(231,76,60,.2);color:#e74c3c;}
+.post-tag.buraco{background:rgba(243,156,18,.2);color:#f39c12;}
+.post-tag.luz{background:rgba(241,196,15,.2);color:#f1c40f;}
+.post-tag.forum{background:rgba(29,185,84,.2);color:#1DB954;}
+.post-vinculo{display:inline-block;margin-left:.4rem;padding:.15rem .55rem;border-radius:10px;font-size:.7rem;font-weight:700;background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.35);}
+.post-vinculo.medio{background:rgba(243,156,18,.15);color:#f39c12;border-color:rgba(243,156,18,.35);}
+.post-vinculo.baixo{background:rgba(39,174,96,.15);color:#27ae60;border-color:rgba(39,174,96,.35);}
+.forum-subtabs{display:flex;gap:.5rem;margin-bottom:.8rem;}
+.subtab{flex:1;padding:.55rem;border-radius:12px;background:var(--card);border:1px solid var(--borda);color:var(--suave);font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.subtab.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);color:var(--verde);}
+.feed-card{background:var(--card);border-radius:var(--raio);border:1px solid var(--borda);margin-bottom:1rem;overflow:hidden;}
+.feed-card.destacada{border-color:rgba(29,185,84,.6);box-shadow:0 0 0 2px rgba(29,185,84,.25);}
+.feed-titulo{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem .55rem;gap:.5rem;}
+.feed-tipo{font-size:.95rem;font-weight:800;}
+.feed-irr{font-size:.72rem;font-weight:800;padding:.22rem .6rem;border-radius:10px;background:var(--vermelho);color:#fff;white-space:nowrap;}
+.feed-irr.medio{background:var(--laranja);}
+.feed-irr.baixo{background:#27ae60;}
+.feed-foto-wrap{position:relative;}
+.feed-foto{width:100%;max-height:300px;object-fit:cover;display:block;cursor:pointer;background:#000;}
+.feed-foto-badge{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.65);color:#fff;font-size:.7rem;font-weight:700;padding:.2rem .55rem;border-radius:10px;}
+.feed-corpo{padding:.75rem 1rem 0;}
+.feed-desc{font-size:.86rem;color:#c8d0da;line-height:1.55;}
+.feed-info{font-size:.78rem;color:var(--suave);margin-top:.5rem;line-height:1.7;}
+.feed-autor{font-size:.72rem;color:var(--suave);margin-top:.45rem;font-style:italic;}
+.feed-acoes{display:flex;gap:.45rem;padding:.65rem 1rem .9rem;flex-wrap:wrap;}
+.post-btn.dislike-ativo{background:rgba(231,76,60,.15);border-color:rgba(231,76,60,.4);color:var(--vermelho);}
+.feed-comentarios{padding:0 1rem .9rem;display:none;}
+.feed-comentarios.aberto{display:block;}
+.coment{background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:10px;padding:.5rem .7rem;margin-bottom:.4rem;font-size:.8rem;color:#c8d0da;line-height:1.5;}
+.coment b{color:#fff;font-size:.78rem;}
+.coment-row{display:flex;gap:.5rem;margin-top:.5rem;}
+.coment-row input{flex:1;padding:.55rem .8rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.83rem;outline:none;font-family:inherit;}
+.coment-row input:focus{border-color:var(--verde);}
+.coment-row button{padding:.55rem .9rem;border-radius:10px;background:var(--verde);border:none;color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;}
+#overlay-duplicada{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:950;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:1.5rem;}
+#overlay-duplicada.aberto{display:flex;}
+#modal-duplicada{background:var(--card);border-radius:20px;width:100%;max-width:400px;padding:1.6rem 1.4rem;border:1px solid rgba(243,156,18,.45);animation:popIn .3s ease;max-height:90vh;overflow-y:auto;text-align:center;}
+.dup-titulo{font-size:1.05rem;font-weight:800;margin-bottom:.4rem;}
+.dup-sub{font-size:.83rem;color:var(--suave);line-height:1.5;margin-bottom:1rem;}
+.dup-card{background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:12px;padding:.9rem;text-align:left;margin-bottom:.4rem;}
+.dup-card img{width:100%;max-height:140px;object-fit:cover;border-radius:8px;margin-bottom:.6rem;}
+.dup-btns{display:flex;flex-direction:column;gap:.6rem;margin-top:1rem;}
+.dup-btn-sim{padding:.85rem;border-radius:25px;background:var(--verde);border:none;color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;}
+.dup-btn-nao{padding:.7rem;border-radius:25px;background:transparent;border:1px solid var(--borda);color:var(--suave);font-weight:600;cursor:pointer;}
+.post-texto{font-size:.87rem;color:#c8d0da;line-height:1.6;margin-bottom:.75rem;}
+.post-acoes{display:flex;gap:.75rem;}
+.post-btn{display:flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.05);border:1px solid var(--borda);border-radius:20px;padding:.3rem .8rem;font-size:.78rem;color:var(--suave);cursor:pointer;transition:all .2s;}
+.post-btn:hover{background:rgba(29,185,84,.12);border-color:rgba(29,185,84,.3);color:var(--verde);}
+.post-btn.curtido{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);color:var(--verde);}
+.novo-post{background:var(--card);border-radius:var(--raio);padding:1rem;border:1px solid var(--borda);margin-bottom:.8rem;}
+.novo-post textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--borda);color:var(--texto);border-radius:10px;padding:.75rem;font-size:.88rem;resize:none;outline:none;font-family:inherit;height:75px;transition:border-color .2s;}
+.novo-post textarea:focus{border-color:var(--verde);}
+.novo-post-footer{display:flex;justify-content:space-between;align-items:center;margin-top:.6rem;}
+.novo-post select{background:rgba(255,255,255,.05);border:1px solid var(--borda);color:var(--suave);border-radius:8px;padding:.4rem .6rem;font-size:.78rem;outline:none;}
+.novo-post select option{background:var(--card);}
+#btn-postar{background:var(--verde);border:none;color:#fff;padding:.4rem 1rem;border-radius:20px;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s;}
+#btn-postar:hover{background:var(--verde-esc);}
+
+/* ── PERFIL ── */
+#screen-perfil{overflow-y:auto;background:var(--bg);padding:1rem;}
+
+/* Sem conta */
+.perfil-vazio{text-align:center;padding:2.5rem 1.5rem;}
+.perfil-vazio .ico{font-size:3.5rem;margin-bottom:1rem;}
+.perfil-vazio h2{font-size:1.2rem;font-weight:800;margin-bottom:.5rem;}
+.perfil-vazio p{font-size:.88rem;color:var(--suave);margin-bottom:1.5rem;line-height:1.6;}
+#btn-criar-conta{background:var(--verde);border:none;color:#fff;padding:.85rem 2.5rem;border-radius:30px;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(29,185,84,.4);transition:all .2s;}
+#btn-criar-conta:hover{background:var(--verde-esc);transform:translateY(-1px);}
+
+/* Formulário de conta */
+.conta-form{background:var(--card);border-radius:var(--raio);padding:1.2rem;border:1px solid var(--borda);margin-bottom:1rem;}
+.conta-form h3{font-size:1rem;font-weight:800;margin-bottom:1rem;}
+.campo-perfil{margin-bottom:.75rem;}
+.campo-perfil label{display:block;font-size:.72rem;font-weight:700;color:var(--suave);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.5px;}
+.campo-perfil input,.campo-perfil select{width:100%;padding:.7rem .85rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.9rem;outline:none;transition:border-color .2s;font-family:inherit;}
+.campo-perfil input:focus,.campo-perfil select:focus{border-color:var(--verde);}
+.campo-perfil select option{background:var(--card);}
+.perfil-row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+#btn-salvar-conta{width:100%;padding:.85rem;border-radius:25px;background:var(--verde);border:none;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;transition:background .2s;}
+#btn-salvar-conta:hover{background:var(--verde-esc);}
+
+/* Conta criada */
+.perfil-header{background:var(--card2);border-radius:var(--raio);padding:1.2rem;border:1px solid var(--borda);margin-bottom:1rem;text-align:center;}
+.perfil-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--verde),var(--verde-esc));display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;margin:0 auto .8rem;}
+.perfil-nome{font-size:1.1rem;font-weight:800;}
+.perfil-sub{font-size:.8rem;color:var(--suave);margin-top:.2rem;}
+
+.perfil-info-grid{background:var(--card);border-radius:var(--raio);border:1px solid var(--borda);margin-bottom:1rem;overflow:hidden;}
+.perfil-info-item{display:flex;align-items:center;gap:.8rem;padding:.85rem 1rem;border-bottom:1px solid var(--borda);}
+.perfil-info-item:last-child{border-bottom:none;}
+.perfil-info-ico{font-size:1.1rem;flex-shrink:0;width:28px;text-align:center;}
+.perfil-info-label{font-size:.7rem;color:var(--suave);text-transform:uppercase;letter-spacing:.5px;}
+.perfil-info-val{font-size:.9rem;font-weight:600;}
+
+.perfil-stats{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;}
+.stat-card{background:var(--card);border:1px solid var(--borda);border-radius:var(--raio);padding:1rem;text-align:center;}
+.stat-card .num{font-size:1.8rem;font-weight:900;color:var(--verde);}
+.stat-card .label{font-size:.72rem;color:var(--suave);}
+
+.perfil-acoes{display:flex;gap:.75rem;margin-bottom:1rem;}
+.btn-editar{flex:1;padding:.7rem;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--borda);color:var(--texto);font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-editar:hover{border-color:var(--verde);color:var(--verde);}
+.btn-sair{flex:1;padding:.7rem;border-radius:12px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--vermelho);font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-sair:hover{background:rgba(231,76,60,.2);}
+
+/* Alerta/toast */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(29,185,84,.9);color:#fff;padding:.6rem 1.2rem;border-radius:20px;font-size:.82rem;font-weight:700;z-index:999;display:none;white-space:nowrap;}
+#toast.erro{background:rgba(231,76,60,.9);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="logo">VIG<span>IA</span></div>
+    <div style="font-size:.75rem;color:var(--suave);">📍 Vitória, ES</div>
+  </div>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <div class="tab ativo" onclick="trocarTela('mapa',this)">🗺️ MAPA</div>
+    <div class="tab" onclick="trocarTela('forum',this)">💬 FÓRUM</div>
+    <div class="tab" onclick="trocarTela('perfil',this)" id="tab-perfil">👤 PERFIL</div>
+  </div>
+
+  <div id="screens">
+
+    <!-- ── MAPA ── -->
+    <div class="screen ativo" id="screen-mapa">
+      <div id="mapa"></div>
+      <div id="crosshair-overlay">
+        <div id="crosshair-hint">👆 Toque DUAS vezes no local do problema · um toque move o mapa</div>
+      </div>
+      <button id="btn-add" onclick="toggleMenu()">＋</button>
+      <div id="menu-add">
+        <div class="menu-item" onclick="abrirDenuncia()">🚨 Fazer denúncia</div>
+      </div>
+    </div>
+
+    <!-- ── FÓRUM ── -->
+    <div class="screen" id="screen-forum">
+      <div class="forum-header">
+        <h2>💬 Fórum da Cidade</h2>
+        <p>Debate, pressione e acompanhe os problemas de Vitória.</p>
+      </div>
+      <!-- Sub-abas: feed de denúncias (estilo rede social) e conversas livres -->
+      <div class="forum-subtabs">
+        <button class="subtab ativo" id="subtab-denuncias" onclick="trocarSubAba('denuncias')">📋 Denúncias</button>
+        <button class="subtab" id="subtab-conversas" onclick="trocarSubAba('conversas')">💬 Conversas</button>
+      </div>
+      <div id="aba-denuncias">
+        <div id="feed-lista"></div>
+      </div>
+      <div id="aba-conversas" style="display:none">
+        <div class="novo-post">
+          <textarea id="novo-texto" placeholder="Compartilhe algo com a comunidade..."></textarea>
+          <div class="novo-post-footer">
+            <select id="novo-tag">
+              <option value="forum">💬 Geral</option>
+              <option value="esgoto">🚰 Esgoto</option>
+              <option value="buraco">🕳️ Buraco</option>
+              <option value="luz">💡 Iluminação</option>
+            </select>
+            <button id="btn-postar" onclick="postarNoForum()">Publicar</button>
+          </div>
+        </div>
+        <div id="posts-lista"></div>
+      </div>
+      <!-- input invisível usado para "adicionar foto" a uma denúncia do feed -->
+      <input id="input-foto-feed" type="file" accept="image/*" style="display:none" onchange="enviarFotoFeed(this)"/>
+    </div>
+
+    <!-- ── PERFIL ── -->
+    <div class="screen" id="screen-perfil">
+      <div id="perfil-conteudo"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODAL DENÚNCIA ── -->
+<div id="overlay" onclick="fecharSeClickFora(event)">
+  <div id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-titulo">🚨 Nova Denúncia</span>
+      <button id="btn-fechar" onclick="fecharModal()">✕</button>
+    </div>
+
+    <div id="banner-conta">✅ Usando dados da sua conta — sem precisar preencher!</div>
+
+    <button id="btn-anonimo" onclick="toggleAnonimo()">👤 Denúncia anônima — não usar meus dados</button>
+
+    <div id="campos-pessoais">
+      <div class="form-row">
+        <div class="campo"><label>Nome</label><input id="f-nome" type="text" placeholder="João"/></div>
+        <div class="campo"><label>Sobrenome</label><input id="f-sobrenome" type="text" placeholder="Silva"/></div>
+      </div>
+      <div class="form-row">
+        <div class="campo"><label>CPF</label><input id="f-cpf" type="text" placeholder="000.000.000-00" maxlength="14"/></div>
+        <div class="campo"><label>CEP</label><input id="f-cep" type="text" placeholder="29000-000" maxlength="9"/></div>
+      </div>
+    </div>
+
+    <div class="form-row single" style="margin-bottom:.7rem;">
+      <div class="campo">
+        <label>Tipo de problema</label>
+        <select id="f-tipo">
+          <option value="">Selecione...</option>
+          <option value="esgoto">🚰 Esgoto / Vazamento de esgoto</option>
+          <option value="buraco">🕳️ Buraco na pista / calçada</option>
+          <option value="poste">💡 Poste de luz apagado</option>
+          <option value="fiacao">⚡ Fiação elétrica solta / perigosa</option>
+          <option value="vazamento">💧 Vazamento de água</option>
+          <option value="lixo">🗑️ Lixo acumulado</option>
+          <option value="calcada">🚶 Calçada danificada</option>
+          <option value="arvore">🌳 Árvore caída / em risco</option>
+          <option value="outro">📋 Outro problema</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row single" style="margin-bottom:.7rem;">
+      <div class="campo">
+        <label>Descrição (opcional)</label>
+        <textarea id="f-desc" placeholder="Descreva o problema. Ex: 'Buraco próximo ao hospital, risco de vida para motociclistas...'"></textarea>
+      </div>
+    </div>
+
+    <!-- LOCALIZAÇÃO -->
+    <div id="sec-localizacao">
+      <div class="campo">
+        <label>📍 Localização do problema</label>
+        <div class="loc-btns">
+          <button class="loc-btn" onclick="usarGPS()">📡 Minha localização</button>
+          <button class="loc-btn" id="btn-clicar-mapa" onclick="ativarSelecaoMapa()">🗺️ Marcar no mapa</button>
+        </div>
+        <div id="busca-endereco-row">
+          <input id="f-endereco" type="text" placeholder="Ou digite o endereço..."/>
+          <button id="btn-buscar-end" onclick="buscarEndereco()">Buscar</button>
+        </div>
+        <div id="loc-status">Nenhuma localização selecionada</div>
+      </div>
+    </div>
+
+    <div id="area-foto" onclick="document.getElementById('input-foto').click()">
+      <div class="foto-icon">📷</div>
+      <p><strong>Adicionar foto</strong></p>
+      <p>Tire uma foto agora ou escolha da galeria</p>
+      <img id="preview-foto" src="" alt="preview"/>
+    </div>
+    <input id="input-foto" type="file" accept="image/*" capture="environment" onchange="previewFoto(this)"/>
+
+    <button id="btn-denunciar" onclick="realizarDenuncia()">REALIZAR DENÚNCIA</button>
+  </div>
+</div>
+
+<!-- ── MODAL SUCESSO ── -->
+<div id="overlay-sucesso">
+  <div id="modal-sucesso">
+    <div class="sucesso-emoji">✅</div>
+    <div class="sucesso-titulo">Denúncia registrada!</div>
+    <div class="sucesso-desc" id="sucesso-desc-txt"></div>
+    <div class="sucesso-irr">
+      <div class="sucesso-irr-label">IRR — Índice de Revolta e Relevância</div>
+      <div id="sucesso-irr-num" class="sucesso-irr-num">--</div>
+      <div id="sucesso-irr-why" class="sucesso-irr-why"></div>
+    </div>
+    <div class="orgao-box">
+      <h4>📬 Órgão responsável</h4>
+      <div id="orgao-nome" class="orgao-nome"></div>
+      <div id="orgao-tel" class="orgao-linha">📞 <span></span></div>
+      <div id="orgao-email" class="orgao-linha">✉️ <span></span></div>
+      <div id="orgao-resp" class="orgao-linha">👤 <span></span></div>
+    </div>
+    <button id="btn-fechar-sucesso" onclick="fecharSucesso()">Ver no mapa</button>
+  </div>
+</div>
+
+<!-- SPLASH DE PERMISSÃO DE LOCALIZAÇÃO -->
+<!-- ── MODAL: DENÚNCIA DUPLICADA? ── -->
+<div id="overlay-duplicada">
+  <div id="modal-duplicada">
+    <div style="font-size:2.2rem;margin-bottom:.4rem;">🔍</div>
+    <div class="dup-titulo">Já existe uma denúncia parecida</div>
+    <div class="dup-sub">Esse é o mesmo problema que você iria denunciar?</div>
+    <div class="dup-card" id="dup-card-conteudo"></div>
+    <div class="dup-btns">
+      <button class="dup-btn-sim" onclick="duplicadaEhOMesmo()">✅ É o mesmo problema</button>
+      <button class="dup-btn-nao" onclick="duplicadaNaoEhOMesmo()">❌ Não, é um problema diferente</button>
+    </div>
+  </div>
+</div>
+
+<div id="splash">
+  <div id="splash-card">
+    <div class="splash-logo">VIG<span>IA</span></div>
+    <div class="splash-icon">📍</div>
+    <div class="splash-titulo">Monitoramento de Vitória</div>
+    <div class="splash-sub">Para mostrar denúncias perto de você e facilitar novas ocorrências, o VIGIA precisa da sua localização.</div>
+    <button id="btn-splash-permitir" onclick="pedirLocalizacao()">
+      📡 Permitir localização
+    </button>
+    <button id="btn-splash-pular" onclick="fecharSplash(null)">
+      Usar localização padrão
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────── BACKEND ───────────
+// Endereços do servidor, em ordem de preferência:
+// 1º o do seu computador (desenvolvimento), 2º o da internet (Render).
+// Se nenhum responder, o app usa dados locais de exemplo.
+const SERVIDORES = [
+  'http://localhost:3000/api',
+  'https://vigia-idj3.onrender.com/api'
+];
+let API = SERVIDORES[0];
+let backendAtivo = false;
+
+async function checarBackend() {
+  for (const base of SERVIDORES) {
+    // O servidor gratuito da internet "dorme" quando ninguém usa
+    // e pode levar até ~1 minuto para acordar — por isso a espera maior.
+    const espera = base.includes('localhost') ? 1500 : 60000;
+    try {
+      const r = await fetch(base + '/denuncias', { signal: AbortSignal.timeout(espera) });
+      if (r.ok) {
+        API = base;
+        backendAtivo = true;
+        console.log('✅ Backend conectado: ' + base);
+        carregarDenunciasDoServidor(); carregarForumDoServidor(); carregarFeedDoServidor();
+        return;
+      }
+    } catch {}
+  }
+  backendAtivo = false;
+  console.log('ℹ️ Backend offline — usando dados locais');
+}
+
+async function carregarDenunciasDoServidor() {
+  try {
+    const r = await fetch(API + '/denuncias');
+    const dados = await r.json();
+    // Substitui as denúncias locais pelas do servidor
+    denunciasExemplo.length = 0;
+    dados.forEach(d => denunciasExemplo.push({
+      lat: d.lat, lng: d.lng, tipo: d.tipo, desc: d.descricao || '',
+      irr: d.irr, anon: !!d.anonima, usuario: d.nome_exibir, loc: d.localizacao
+    }));
+    renderPins();
+    console.log(`📍 ${dados.length} denúncias carregadas do servidor`);
+  } catch(e) { console.error('Erro ao carregar denúncias:', e); }
+}
+
+// ─────────── ESTADO GLOBAL ───────────
+let perfil = null;        // conta do usuário
+let anonimo = false;
+let locSelecionada = null; // {lat, lng, label}
+let selecionandoMapa = false;
+let denunciasPendentes = 0;
+
+// ─────────── DENÚNCIAS (carregadas do servidor) ───────────
+const denunciasExemplo = []; // vazio — dados reais vêm do backend
+
+// ─────────── ÓRGÃOS ───────────
+const orgaos = {
+  esgoto:   {nome:'CESAN — Cia Esp. de Saneamento',tel:'0800 722 0195',email:'atendimento@cesan.com.br',resp:'Alessandro Donadello (Diretor-Geral)'},
+  buraco:   {nome:'SEINFRA — Secretaria de Infraestrutura de Vitória',tel:'(27) 3382-5500',email:'seinfra@vitoria.es.gov.br',resp:'Secretário Municipal de Obras'},
+  poste:    {nome:'EDP Espírito Santo',tel:'0800 721 0707',email:'atendimento@edp.com.br',resp:'Miguel Setas (Presidente EDP Brasil)'},
+  fiacao:   {nome:'EDP Espírito Santo',tel:'0800 721 0707',email:'atendimento@edp.com.br',resp:'Miguel Setas (Presidente EDP Brasil)'},
+  vazamento:{nome:'CESAN — Cia Esp. de Saneamento',tel:'0800 722 0195',email:'atendimento@cesan.com.br',resp:'Alessandro Donadello (Diretor-Geral)'},
+  lixo:     {nome:'LIMPAC — Limpeza Pública de Vitória',tel:'(27) 3382-6300',email:'limpac@vitoria.es.gov.br',resp:'Gerência de Limpeza Urbana'},
+  calcada:  {nome:'SEINFRA — Secretaria de Infraestrutura de Vitória',tel:'(27) 3382-5500',email:'seinfra@vitoria.es.gov.br',resp:'Secretário Municipal de Obras'},
+  arvore:   {nome:'SEMMAM — Secretaria de Meio Ambiente',tel:'(27) 3382-6500',email:'semmam@vitoria.es.gov.br',resp:'Secretária de Meio Ambiente'},
+  outro:    {nome:'Prefeitura de Vitória — Central 156',tel:'156',email:'faleconosco@vitoria.es.gov.br',resp:'Lorenzo Pazolini (Prefeito de Vitória)'},
+};
+
+// ─────────── MAPA ───────────
+// Limites de Vitória-ES (ilha + continente)
+const VITORIA_BOUNDS = L.latLngBounds(
+  L.latLng(-20.42, -40.42), // sudoeste
+  L.latLng(-20.24, -40.24)  // nordeste
+);
+const VITORIA_CENTER = [-20.3222, -40.3381];
+
+const mapa = L.map('mapa',{
+  zoomControl:false,
+  attributionControl:false,
+  maxBounds: VITORIA_BOUNDS,
+  maxBoundsViscosity: 0.9,
+  minZoom: 13
+}).setView(VITORIA_CENTER, 18);
+
+// Camada de satélite (Esri World Imagery — gratuita, sem chave)
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(mapa);
+// Camada de nomes de ruas por cima (como o Apple Maps)
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,opacity:0.9}).addTo(mapa);
+L.control.zoom({position:'topright'}).addTo(mapa);
+
+// ─────────── SPLASH / GEOLOCALIZAÇÃO ───────────
+let marcadorUsuario = null;
+
+function pedirLocalizacao(){
+  const btn = document.getElementById('btn-splash-permitir');
+  btn.textContent = '⏳ Obtendo localização...';
+  btn.disabled = true;
+  if(!navigator.geolocation){
+    fecharSplash(null);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => fecharSplash(pos),
+    ()  => fecharSplash(null),
+    { enableHighAccuracy:true, timeout:8000, maximumAge:0 }
+  );
+}
+
+function fecharSplash(pos){
+  const splash = document.getElementById('splash');
+  splash.classList.add('saindo');
+  setTimeout(()=>{ splash.style.display='none'; }, 500);
+
+  if(pos){
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    // Centraliza no usuário se estiver dentro de Vitória (ou arredores)
+    mapa.setView([lat, lng], 18);
+    // Marcador "você está aqui"
+    const icUser = L.divIcon({
+      className:'',
+      html:`<div style="width:18px;height:18px;border-radius:50%;background:#4a90e2;border:3px solid #fff;box-shadow:0 0 0 4px rgba(74,144,226,.35),0 2px 8px rgba(0,0,0,.5);"></div>`,
+      iconAnchor:[9,9]
+    });
+    marcadorUsuario = L.marker([lat, lng], {icon:icUser, zIndexOffset:1000}).addTo(mapa);
+    marcadorUsuario.bindPopup('<b style="color:#4a90e2">📍 Você está aqui</b>');
+  }
+}
+
+let markers=[];
+function irrClass(v){return v>=70?'alto':v>=45?'medio':'baixo';}
+function irrColor(v){return v>=70?'#e74c3c':v>=45?'#f39c12':'#27ae60';}
+
+function renderPins(){
+  markers.forEach(m=>mapa.removeLayer(m)); markers=[];
+  const z=mapa.getZoom();
+  const minIRR = z>=16?0:z>=15?35:z>=14?55:70;
+  denunciasExemplo.forEach(d=>{
+    if(d.irr<minIRR) return;
+    const ic=L.divIcon({className:'',html:`<div class="irr-pin ${irrClass(d.irr)}">IRR ${d.irr}%</div>`,iconAnchor:[0,0]});
+    const m=L.marker([d.lat,d.lng],{icon:ic}).addTo(mapa);
+    const tLabel={esgoto:'Esgoto',buraco:'Buraco',poste:'Poste apagado',fiacao:'Fiação solta',lixo:'Lixo',vazamento:'Vazamento',calcada:'Calçada',arvore:'Árvore',outro:'Outro'}[d.tipo]||d.tipo;
+    m.bindPopup(`
+      <div class="popup-tipo">${tLabel}</div>
+      ${d.loc?`<div class="popup-loc">📍 ${d.loc}</div>`:''}
+      <div class="popup-desc">${d.desc}</div>
+      <span class="popup-irr ${irrClass(d.irr)}">IRR ${d.irr}%</span>
+      <div class="popup-anon">${d.anon?'👤 Denúncia anônima':'👤 '+d.usuario}</div>
+    `,{maxWidth:240});
+    markers.push(m);
+  });
+}
+renderPins();
+mapa.on('zoomend',renderPins);
+mapa.on('click',e=>{
+  document.getElementById('menu-add').classList.remove('aberto');
+});
+// Seleção de local: clique DUPLO marca o ponto
+// (clique simples e arrastar continuam movendo o mapa normalmente)
+mapa.on('dblclick',e=>{
+  if(selecionandoMapa) confirmarLocMapa(e.latlng);
+});
+
+// ─────────── MENU + ───────────
+let menuAberto=false;
+function toggleMenu(){
+  menuAberto=!menuAberto;
+  document.getElementById('menu-add').classList.toggle('aberto',menuAberto);
+}
+
+// ─────────── MODAL DENÚNCIA ───────────
+function abrirDenuncia(){
+  menuAberto=false; anonimo=false;
+  document.getElementById('menu-add').classList.remove('aberto');
+  locSelecionada=null;
+  setLocStatus('Nenhuma localização selecionada','');
+
+  // auto-preencher se tem perfil
+  const btn=document.getElementById('btn-anonimo');
+  btn.classList.remove('ativo');
+  btn.textContent='👤 Denúncia anônima — não usar meus dados';
+
+  if(perfil){
+    document.getElementById('banner-conta').style.display='block';
+    document.getElementById('f-nome').value=perfil.nome; document.getElementById('f-nome').disabled=true; document.getElementById('f-nome').classList.add('preenchido-perfil');
+    document.getElementById('f-sobrenome').value=perfil.sobrenome; document.getElementById('f-sobrenome').disabled=true; document.getElementById('f-sobrenome').classList.add('preenchido-perfil');
+    document.getElementById('f-cpf').value=perfil.cpf; document.getElementById('f-cpf').disabled=true; document.getElementById('f-cpf').classList.add('preenchido-perfil');
+    document.getElementById('f-cep').value=perfil.cep; document.getElementById('f-cep').disabled=true; document.getElementById('f-cep').classList.add('preenchido-perfil');
+  } else {
+    document.getElementById('banner-conta').style.display='none';
+    ['f-nome','f-sobrenome','f-cpf','f-cep'].forEach(id=>{
+      const el=document.getElementById(id); el.value=''; el.disabled=false; el.classList.remove('preenchido-perfil');
+    });
+  }
+  document.getElementById('f-tipo').value='';
+  document.getElementById('f-desc').value='';
+  document.getElementById('preview-foto').style.display='none';
+  document.getElementById('area-foto').classList.remove('tem-foto');
+  document.getElementById('overlay').classList.add('aberto');
+}
+
+function fecharModal(){ document.getElementById('overlay').classList.remove('aberto'); }
+function fecharSeClickFora(e){ if(e.target.id==='overlay') fecharModal(); }
+
+function toggleAnonimo(){
+  anonimo=!anonimo;
+  const btn=document.getElementById('btn-anonimo');
+  btn.classList.toggle('ativo',anonimo);
+  btn.textContent=anonimo?'✅ Denúncia anônima ativada':'👤 Denúncia anônima — não usar meus dados';
+  ['f-nome','f-sobrenome','f-cpf','f-cep'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.disabled = anonimo || !!perfil;
+    el.classList.toggle('preenchido-perfil', !anonimo && !!perfil);
+  });
+  document.getElementById('banner-conta').style.display = (!anonimo && perfil) ? 'block' : 'none';
+}
+
+function previewFoto(input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{ const img=document.getElementById('preview-foto'); img.src=e.target.result; img.style.display='block'; document.getElementById('area-foto').classList.add('tem-foto'); };
+  reader.readAsDataURL(file);
+}
+
+// Máscaras
+document.getElementById('f-cpf').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,11);
+  v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  this.value=v;
+});
+document.getElementById('f-cep').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'').slice(0,8);
+  if(v.length>5) v=v.replace(/(\d{5})(\d)/,'$1-$2');
+  this.value=v;
+});
+
+// ─────────── LOCALIZAÇÃO ───────────
+function setLocStatus(txt, tipo){
+  const el=document.getElementById('loc-status');
+  el.textContent=txt;
+  el.className='';
+  if(tipo==='ok') el.classList.add('ok');
+  if(tipo==='erro') el.classList.add('erro');
+}
+
+function usarGPS(){
+  setLocStatus('⏳ Obtendo sua localização...','');
+  if(!navigator.geolocation){ setLocStatus('⚠️ GPS não disponível neste dispositivo','erro'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      locSelecionada={lat:pos.coords.latitude, lng:pos.coords.longitude, label:'Localização atual (GPS)'};
+      setLocStatus('✅ '+locSelecionada.label,'ok');
+    },
+    ()=>{ setLocStatus('❌ Não foi possível obter o GPS. Use "Marcar no mapa" ou digite o endereço.','erro'); }
+  );
+}
+
+function ativarSelecaoMapa(){
+  fecharModal();
+  selecionandoMapa=true;
+  document.getElementById('crosshair-overlay').classList.add('ativo');
+  mapa.getContainer().style.cursor='crosshair';
+  // Desliga o zoom do clique duplo enquanto seleciona,
+  // para o clique duplo virar "marcar o local"
+  mapa.doubleClickZoom.disable();
+}
+
+function confirmarLocMapa(latlng){
+  selecionandoMapa=false;
+  document.getElementById('crosshair-overlay').classList.remove('ativo');
+  mapa.getContainer().style.cursor='';
+  mapa.doubleClickZoom.enable();
+  locSelecionada={lat:latlng.lat, lng:latlng.lng, label:`${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`};
+  // Geocode reverso para obter nome do endereço
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json&accept-language=pt`)
+    .then(r=>r.json()).then(d=>{
+      const end = d.display_name ? d.display_name.split(',').slice(0,3).join(',') : locSelecionada.label;
+      locSelecionada.label = end;
+      setLocStatus('✅ '+end,'ok');
+    }).catch(()=>setLocStatus('✅ Local marcado no mapa','ok'));
+  // Reabre modal
+  setTimeout(()=>document.getElementById('overlay').classList.add('aberto'), 200);
+}
+
+async function buscarEndereco(){
+  const q = document.getElementById('f-endereco').value.trim();
+  if(!q){ toast('Digite um endereço','erro'); return; }
+  setLocStatus('⏳ Buscando endereço...','');
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q+', Vitória, ES, Brasil')}&format=json&limit=1&accept-language=pt`);
+    const data=await r.json();
+    if(!data.length){ setLocStatus('❌ Endereço não encontrado. Tente ser mais específico.','erro'); return; }
+    const {lat,lon,display_name}=data[0];
+    locSelecionada={lat:parseFloat(lat),lng:parseFloat(lon),label:display_name.split(',').slice(0,3).join(',')};
+    setLocStatus('✅ '+locSelecionada.label,'ok');
+    mapa.flyTo([locSelecionada.lat,locSelecionada.lng],16);
+  }catch(e){ setLocStatus('❌ Erro ao buscar. Tente "Marcar no mapa".','erro'); }
+}
+
+// ─────────── IRR ───────────
+function calcularIRR(tipo,desc){
+  let base={esgoto:55,buraco:50,poste:40,fiacao:60,vazamento:38,lixo:28,calcada:42,arvore:45,outro:30}[tipo]||35;
+  const d=(desc||'').toLowerCase();
+  const kw={hospital:20,'risco de vida':20,praia:12,escola:14,criança:15,crianças:15,'vida marinha':10,contaminação:12,risco:10,idoso:10,idosos:10,perigo:8,emergência:15};
+  let bonus=0; for(const[k,v] of Object.entries(kw)) if(d.includes(k)) bonus+=v;
+  return Math.min(99,Math.max(1,base+bonus+Math.floor(Math.random()*8)));
+}
+
+function motivoIRR(tipo,irr,desc){
+  const d=(desc||'').toLowerCase();
+  const partes=[];
+  const pop={esgoto:'área costeira',buraco:'via pública',poste:'área residencial',fiacao:'risco elétrico imediato',vazamento:'recurso público',lixo:'área urbana',calcada:'via de pedestres',arvore:'área pública',outro:'área urbana'}[tipo]||'área urbana';
+  partes.push(`Localização: ${pop} (IBGE)`);
+  if(d.includes('hospital')) partes.push('🏥 "hospital" detectado');
+  if(d.includes('escola')||d.includes('criança')||d.includes('crianças')) partes.push('🏫 "escola/crianças" detectado');
+  if(d.includes('risco')||d.includes('risco de vida')) partes.push('⚠️ "risco" detectado');
+  if(d.includes('praia')||d.includes('contamin')) partes.push('🌊 Impacto ambiental');
+  if(d.includes('idoso')||d.includes('idosos')) partes.push('👴 "idosos" detectado');
+  return partes.join(' · ');
+}
+
+// ─────────── REALIZAR DENÚNCIA ───────────
+// Guarda a denúncia duplicada encontrada enquanto o usuário decide
+let duplicadaAtual=null;
+
+// Distância em metros entre dois pontos (fórmula de Haversine)
+function distM(lat1,lng1,lat2,lng2){
+  const R=6371000,rad=Math.PI/180;
+  const dLat=(lat2-lat1)*rad,dLng=(lng2-lng1)*rad;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+// Checagem local de duplicada (sem servidor): mesmo tipo a até 200m
+function duplicadaLocal(tipo){
+  for(let i=0;i<denunciasExemplo.length;i++){
+    const d=denunciasExemplo[i];
+    if(d.tipo===tipo&&distM(locSelecionada.lat,locSelecionada.lng,d.lat,d.lng)<=200)
+      return {local_idx:i,tipo:d.tipo,descricao:d.desc,localizacao:d.loc,irr:d.irr,id:null};
+  }
+  return null;
+}
+
+function mostrarModalDuplicada(d){
+  const fSrc=d.foto_path?(String(d.foto_path).startsWith('http')?d.foto_path:`${API.replace('/api','')}/uploads/${d.foto_path}`):null;
+  const fotoHtml=fSrc?`<img src="${fSrc}" alt="foto da denúncia"/>`:'';
+  document.getElementById('dup-card-conteudo').innerHTML=`${fotoHtml}
+    <div style="font-weight:800;font-size:.92rem;">${tipoLabel(d.tipo)} <span class="feed-irr ${irrClass(d.irr)}" style="float:right">IRR ${d.irr}%</span></div>
+    <div style="font-size:.8rem;color:var(--suave);margin:.35rem 0;">📍 ${d.localizacao||'Vitória, ES'}</div>
+    <div style="font-size:.82rem;color:#c8d0da;line-height:1.5;">${(d.descricao||'').slice(0,160)}</div>`;
+  fecharModal();
+  document.getElementById('overlay-duplicada').classList.add('aberto');
+}
+
+// "✅ É o mesmo problema" → não cria denúncia nova; se o usuário tinha
+// anexado foto, ela vai para a denúncia existente; e sugerimos comentar.
+async function duplicadaEhOMesmo(){
+  document.getElementById('overlay-duplicada').classList.remove('aberto');
+  const d=duplicadaAtual; if(!d)return;
+  const fotoInput=document.getElementById('input-foto');
+  if(backendAtivo&&d.id&&fotoInput.files[0]){
+    toast('🤖 IA verificando sua foto...');
+    const fd=new FormData();
+    fd.append('foto',fotoInput.files[0]);
+    fd.append('autor',anonimo?'Anônimo':(perfil?perfil.nome+' '+perfil.sobrenome:(document.getElementById('f-nome').value||'Anônimo')));
+    try{
+      const r=await fetch(`${API}/denuncias/${d.id}/fotos`,{method:'POST',body:fd});
+      const data=await r.json();
+      if(r.ok)toast(`📷 Sua foto foi adicionada à denúncia — IRR agora ${data.irr}%`);
+      else if(data.erro_foto)toast('Foto recusada pela IA: '+data.erro_foto,'erro');
+    }catch(e){}
+  }
+  await atualizarFeed();
+  if(backendAtivo)carregarDenunciasDoServidor();
+  trocarTela('forum',null);
+  trocarSubAba('denuncias');
+  setTimeout(()=>{
+    const card=document.getElementById('feed-card-'+(d.id!=null?d.id:'L'+d.local_idx));
+    if(card){
+      card.classList.add('destacada');
+      card.scrollIntoView({behavior:'smooth',block:'center'});
+      const cm=card.querySelector('.feed-comentarios');
+      if(cm){cm.classList.add('aberto');carregarComentarios(d.id!=null?d.id:'L'+d.local_idx);}
+    }
+    toast('💬 Reforce a denúncia com um comentário!');
+  },400);
+  duplicadaAtual=null;
+}
+
+// "❌ Não, é diferente" → cria a denúncia normalmente
+async function duplicadaNaoEhOMesmo(){
+  document.getElementById('overlay-duplicada').classList.remove('aberto');
+  document.getElementById('overlay').classList.add('aberto');
+  duplicadaAtual=null;
+  await enviarDenuncia(true);
+}
+
+async function realizarDenuncia(){
+  const tipo=document.getElementById('f-tipo').value;
+  if(!tipo){ toast('Selecione o tipo de problema','erro'); return; }
+  if(!locSelecionada){ toast('Adicione a localização do problema','erro'); return; }
+
+  const desc=document.getElementById('f-desc').value;
+  const btnDen=document.getElementById('btn-denunciar');
+  btnDen.textContent='🔍 Verificando...'; btnDen.disabled=true;
+
+  // ETAPA 1: já existe uma denúncia desse problema por perto?
+  let duplicada=null;
+  if(backendAtivo){
+    try{
+      const r=await fetch(API+'/denuncias/verificar',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({lat:locSelecionada.lat,lng:locSelecionada.lng,tipo,descricao:desc})});
+      duplicada=(await r.json()).duplicada;
+    }catch(e){}
+  } else {
+    duplicada=duplicadaLocal(tipo);
+  }
+  if(duplicada){
+    duplicadaAtual=duplicada;
+    btnDen.textContent='REALIZAR DENÚNCIA'; btnDen.disabled=false;
+    mostrarModalDuplicada(duplicada);
+    return;
+  }
+
+  // ETAPA 2: não é duplicada — cria de verdade
+  await enviarDenuncia(false);
+}
+
+async function enviarDenuncia(forcarNova){
+  const tipo=document.getElementById('f-tipo').value;
+  const desc=document.getElementById('f-desc').value;
+  const btnDen=document.getElementById('btn-denunciar');
+  btnDen.textContent='⏳ Processando...'; btnDen.disabled=true;
+
+  let irrVal, irrMotivo, orgao, denunciaId='—';
+
+  if(backendAtivo){
+    // ── Envia para o servidor real ──
+    try{
+      const fd=new FormData();
+      fd.append('lat', locSelecionada.lat);
+      fd.append('lng', locSelecionada.lng);
+      fd.append('tipo', tipo);
+      fd.append('descricao', desc);
+      fd.append('anonima', anonimo);
+      fd.append('forcar_nova', forcarNova?'true':'false');
+      fd.append('localizacao', locSelecionada.label||'');
+      if(perfil) fd.append('usuario_id', perfil._id||'');
+      fd.append('nome_exibir', anonimo?'':(perfil?perfil.nome+' '+perfil.sobrenome:(document.getElementById('f-nome').value||'')));
+      const fotoInput=document.getElementById('input-foto');
+      if(fotoInput.files[0]) fd.append('foto', fotoInput.files[0]);
+
+      const r=await fetch(API+'/denuncias',{method:'POST',body:fd});
+      const data=await r.json();
+      if(r.status===409&&data.duplicada){
+        // Rede de segurança: o servidor encontrou uma duplicada
+        duplicadaAtual=data.duplicada;
+        btnDen.textContent='REALIZAR DENÚNCIA'; btnDen.disabled=false;
+        mostrarModalDuplicada(data.duplicada);
+        return;
+      }
+      if(r.status===422&&data.erro_foto){
+        // A IA recusou a foto
+        toast('🤖 Foto recusada: '+data.erro_foto,'erro');
+        btnDen.textContent='REALIZAR DENÚNCIA'; btnDen.disabled=false;
+        return;
+      }
+      if(!r.ok) throw new Error(data.erro||'Erro no servidor');
+      irrVal=data.denuncia.irr; irrMotivo=data.denuncia.irr_motivo;
+      orgao=data.orgao; denunciaId='#'+data.denuncia.id;
+      // Recarrega pins e feed do servidor
+      await carregarDenunciasDoServidor();
+      carregarFeedDoServidor();
+    }catch(e){
+      toast('Erro ao enviar: '+e.message,'erro');
+      btnDen.textContent='REALIZAR DENÚNCIA'; btnDen.disabled=false;
+      return;
+    }
+  } else {
+    // ── Modo local (sem backend) ──
+    const nomeUsuario=anonimo?null:(perfil?perfil.nome+' '+perfil.sobrenome:(document.getElementById('f-nome').value||'Usuário'));
+    const local=calcularIRR(tipo,desc);
+    irrVal=local.irr; irrMotivo=local.motivo;
+    orgao=orgaos[tipo]||orgaos.outro;
+    denunciasExemplo.push({lat:locSelecionada.lat,lng:locSelecionada.lng,tipo,desc,irr:irrVal,anon:anonimo,usuario:nomeUsuario,loc:locSelecionada.label});
+    renderPins();
+    renderFeed();
+  }
+
+  btnDen.textContent='REALIZAR DENÚNCIA'; btnDen.disabled=false;
+  denunciasPendentes++;
+  if(perfil){ perfil.denuncias=(perfil.denuncias||0)+1; salvarPerfilLocal(); renderPerfil(); }
+
+  const emailInfo=perfil?` Um e-mail foi enviado para ${perfil.email||'você'}.`:' Guarde o contato do órgão abaixo.';
+  document.getElementById('sucesso-desc-txt').textContent='Sua denúncia foi registrada '+denunciaId+' e já aparece no mapa.'+emailInfo;
+  document.getElementById('sucesso-irr-num').textContent=irrVal+'%';
+  document.getElementById('sucesso-irr-num').style.color=irrColor(irrVal);
+  document.getElementById('sucesso-irr-why').textContent=irrMotivo||'';
+  document.getElementById('orgao-nome').textContent=orgao.nome||orgao.nome;
+  document.getElementById('orgao-tel').querySelector('span').textContent=orgao.tel||orgao.tel;
+  document.getElementById('orgao-email').querySelector('span').textContent=orgao.email||orgao.email;
+  document.getElementById('orgao-resp').querySelector('span').textContent=orgao.responsavel||orgao.resp||'';
+
+  fecharModal();
+  document.getElementById('overlay-sucesso').classList.add('aberto');
+}
+
+function fecharSucesso(){
+  document.getElementById('overlay-sucesso').classList.remove('aberto');
+  renderPins();
+  // Voa para a denúncia recém-feita
+  const ultima=denunciasExemplo[denunciasExemplo.length-1];
+  mapa.flyTo([ultima.lat,ultima.lng],16);
+  trocarTela('mapa',document.querySelector('.tab'));
+}
+
+// ─────────── FÓRUM ───────────
+const postsIniciais=[]; // vazio — posts reais vêm do backend
+
+// Posts vindos do servidor (quando o backend está ligado).
+// Sem servidor, o app continua usando os posts locais de exemplo.
+let postsBackend=null;
+function postsAtivos(){return (backendAtivo&&postsBackend)?postsBackend:postsIniciais;}
+
+// Converte uma data do servidor em "há 2h", "há 3 dias", etc.
+function tempoRelativo(dataStr){
+  if(!dataStr)return 'agora';
+  const min=Math.floor((Date.now()-new Date(dataStr.replace(' ','T')+'Z').getTime())/60000);
+  if(min<1)return 'agora';
+  if(min<60)return `há ${min} min`;
+  const h=Math.floor(min/60); if(h<24)return `há ${h}h`;
+  const d=Math.floor(h/24); return d===1?'há 1 dia':`há ${d} dias`;
+}
+
+// Busca os posts no servidor — já vêm ordenados por urgência
+// (IRR da denúncia ligada > curtidas > mais recentes)
+async function carregarForumDoServidor(){
+  try{
+    const r=await fetch(API+'/forum');
+    const dados=await r.json();
+    postsBackend=dados.map(p=>({
+      id:p.id, usuario:p.autor, tempo:tempoRelativo(p.criado_em),
+      tag:p.tag, texto:p.texto, curtidas:p.curtidas, comentarios:p.comentarios||0,
+      den:p.denuncia_id?{id:p.denuncia_id,irr:p.den_irr}:null
+    }));
+    renderForum(postsAtivos());
+    console.log(`💬 ${dados.length} posts do fórum carregados do servidor`);
+  }catch(e){console.error('Erro ao carregar fórum:',e);}
+}
+
+function renderForum(posts){
+  if(!posts||posts.length===0){
+    document.getElementById('posts-lista').innerHTML='<div style="text-align:center;color:var(--suave);padding:2rem;font-size:.85rem;">Nenhuma conversa ainda. Seja o primeiro a postar!</div>';
+    return;
+  }
+  document.getElementById('posts-lista').innerHTML=posts.map((p,i)=>`
+    <div class="post">
+      <div class="post-top"><span class="post-usuario">${p.usuario}</span><span class="post-tempo">${p.tempo}</span></div>
+      <span class="post-tag ${p.tag}">${{esgoto:'🚰 Esgoto',buraco:'🕳️ Buraco',luz:'💡 Iluminação',forum:'💬 Geral'}[p.tag]||p.tag}</span>${p.den?`<span class="post-vinculo ${irrClass(p.den.irr)}">🔗 Denúncia #${p.den.id} · IRR ${p.den.irr}%</span>`:''}
+      <div class="post-texto">${p.texto}</div>
+      <div class="post-acoes">
+        <button class="post-btn ${p._curtido?'curtido':''}" onclick="curtir(${i},this)">👍 ${p.curtidas}</button>
+        <button class="post-btn" onclick="toggleComentariosPost(${i})">💬 ${p.comentarios||0} comentários</button>
+      </div>
+      <div class="feed-comentarios" id="pcoments-${i}" style="padding:0;margin-top:.6rem;">
+        <div id="pcoments-lista-${i}"></div>
+        <div class="coment-row">
+          <input id="pcoment-input-${i}" placeholder="Escreva um comentário..." onkeydown="if(event.key==='Enter')comentarPost(${i})"/>
+          <button onclick="comentarPost(${i})">Enviar</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── COMENTÁRIOS DOS POSTS (aba Conversas) ──
+async function toggleComentariosPost(i){
+  const box=document.getElementById('pcoments-'+i);
+  const abrir=!box.classList.contains('aberto');
+  box.classList.toggle('aberto',abrir);
+  if(abrir)await carregarComentariosPost(i);
+}
+async function carregarComentariosPost(i){
+  const p=postsAtivos()[i];
+  const lista=document.getElementById('pcoments-lista-'+i);
+  if(!p||!lista)return;
+  const vazio='<div class="coment" style="text-align:center;color:var(--suave)">Seja o primeiro a comentar!</div>';
+  if(backendAtivo&&p.id){
+    try{
+      const r=await fetch(`${API}/forum/${p.id}/comentarios`);
+      const cs=await r.json();
+      lista.innerHTML=cs.map(c=>`<div class="coment"><b>${c.autor}</b> · <span style="font-size:.7rem;color:var(--suave)">${tempoRelativo(c.criado_em)}</span><br/>${c.texto}</div>`).join('')||vazio;
+    }catch(e){}
+  } else {
+    lista.innerHTML=(p._coments||[]).map(c=>`<div class="coment"><b>${c.autor}</b><br/>${c.texto}</div>`).join('')||vazio;
+  }
+}
+async function comentarPost(i){
+  const p=postsAtivos()[i];
+  const input=document.getElementById('pcoment-input-'+i);
+  const texto=input.value.trim(); if(!texto||!p)return;
+  const autor=perfil?perfil.nome+' '+perfil.sobrenome:'Você';
+  if(backendAtivo&&p.id){
+    try{
+      const r=await fetch(`${API}/forum/${p.id}/comentarios`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({autor,texto,usuario_id:perfil?perfil._id:null})});
+      if(!r.ok)throw new Error();
+      p.comentarios=(p.comentarios||0)+1;
+    }catch(e){toast('Erro ao comentar','erro');return;}
+  } else {
+    p._coments=p._coments||[];
+    p._coments.push({autor,texto});
+    p.comentarios=p._coments.length;
+  }
+  renderForum(postsAtivos());
+  const box=document.getElementById('pcoments-'+i);
+  if(box){box.classList.add('aberto');carregarComentariosPost(i);}
+}
+renderForum(postsIniciais);
+
+function curtir(i,btn){
+  const posts=postsAtivos(), p=posts[i];
+  p._curtido=!p._curtido;
+  p.curtidas+=p._curtido?1:-1;
+  btn.classList.toggle('curtido',p._curtido);
+  btn.childNodes[0].textContent='👍 '+p.curtidas;
+  // Se tiver servidor, avisa ele também (sem travar a tela)
+  if(backendAtivo&&p.id){
+    fetch(`${API}/forum/${p.id}/curtir`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({delta:p._curtido?1:-1})}).catch(()=>{});
+  }
+}
+async function postarNoForum(){
+  const txt=document.getElementById('novo-texto').value.trim(); if(!txt)return;
+  const tag=document.getElementById('novo-tag').value;
+  const autor=perfil?(perfil.nome+' '+perfil.sobrenome):'Você';
+  if(backendAtivo){
+    // Modo servidor: publica de verdade — todos verão o post
+    const btn=document.getElementById('btn-postar');
+    btn.textContent='⏳ Publicando...'; btn.disabled=true;
+    try{
+      const r=await fetch(API+'/forum',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({autor,tag,texto:txt,usuario_id:perfil?perfil.id:null})});
+      const data=await r.json();
+      if(!r.ok)throw new Error(data.erro||'Erro no servidor');
+      document.getElementById('novo-texto').value='';
+      await carregarForumDoServidor();
+      if(data.vinculo){
+        // A IA ligou o post a uma denúncia e o IRR subiu!
+        toast(`🤖 IA: seu post reforçou a denúncia #${data.vinculo.denuncia_id} — IRR ${data.vinculo.irr_antigo}% → ${data.vinculo.irr_novo}%`);
+        carregarDenunciasDoServidor(); // atualiza os pins no mapa
+      }else{
+        toast('Post publicado!');
+      }
+    }catch(e){toast('Erro ao publicar: '+e.message,'erro');}
+    btn.textContent='Publicar'; btn.disabled=false;
+  } else {
+    // Modo local (sem servidor): como antes
+    postsIniciais.unshift({usuario:autor,tempo:'agora',tag,texto:txt,curtidas:0,comentarios:0});
+    renderForum(postsIniciais);
+    document.getElementById('novo-texto').value='';
+  }
+}
+
+// ─────────── FEED DE DENÚNCIAS (aba 📋 do fórum) ───────────
+// Cards estilo rede social: título, foto(s), descrição, órgão
+// responsável, autor, likes/dislikes, comentários e "adicionar foto".
+// Todas as interações alimentam a pressão da comunidade no IRR.
+
+function trocarSubAba(aba){
+  document.getElementById('subtab-denuncias').classList.toggle('ativo',aba==='denuncias');
+  document.getElementById('subtab-conversas').classList.toggle('ativo',aba==='conversas');
+  document.getElementById('aba-denuncias').style.display=aba==='denuncias'?'block':'none';
+  document.getElementById('aba-conversas').style.display=aba==='conversas'?'block':'none';
+}
+
+function tipoLabel(t){return {esgoto:'🚰 Esgoto',buraco:'🕳️ Buraco',poste:'💡 Poste apagado',fiacao:'⚡ Fiação solta',lixo:'🗑️ Lixo acumulado',vazamento:'💧 Vazamento de água',calcada:'🚶 Calçada danificada',arvore:'🌳 Árvore em risco',outro:'📋 Outro problema'}[t]||t;}
+
+// Identifica quem está votando (1 voto por pessoa/aparelho)
+function chaveVoto(){
+  if(perfil&&perfil.email)return 'u:'+perfil.email;
+  let c=localStorage.getItem('vigia_chave');
+  if(!c){c='anon:'+Math.random().toString(36).slice(2,12);localStorage.setItem('vigia_chave',c);}
+  return c;
+}
+
+let feedDados=null;   // dados vindos do servidor
+const fotoIdx={};     // qual foto está visível em cada card
+const meusVotos={};   // meu like/dislike em cada denúncia (visual)
+
+async function carregarFeedDoServidor(){
+  try{
+    const r=await fetch(API+'/denuncias/feed');
+    feedDados=await r.json();
+    renderFeed();
+    console.log(`📋 Feed: ${feedDados.length} denúncias carregadas`);
+  }catch(e){console.error('Erro no feed:',e);}
+}
+function atualizarFeed(){return (backendAtivo)?carregarFeedDoServidor():Promise.resolve(renderFeed());}
+
+// Versão local do feed (sem servidor): usa as denúncias do mapa
+function feedLocalRef(id){return denunciasExemplo[parseInt(String(id).slice(1))];}
+function feedLocal(){
+  return denunciasExemplo.map((d,i)=>({
+    id:'L'+i,tipo:d.tipo,descricao:d.desc,irr:d.irr,localizacao:d.loc,
+    anonima:d.anon?1:0,nome_exibir:d.usuario,
+    orgao:(orgaos[d.tipo]||orgaos.outro),
+    fotos:(d._fotosLocais||[]).map(u=>({foto_path:u,_data:true})),
+    comentarios:(d._coments||[]).length,
+    likes:d._likes||0,dislikes:d._dislikes||0
+  })).sort((a,b)=>b.irr-a.irr);
+}
+
+// Fórmula local idêntica à do servidor: curva por pontos-âncora
+// (1-10 → +1 · 100 → +3 · 1.000 → +8 · 10.000 → +20 · 100.000 → +25)
+function bonusComunidadeLocal(p){
+  p=Math.max(0,p); if(p===0)return 0;
+  const pontos=[[0,1],[1,1],[2,3],[3,8],[4,20],[5,25]];
+  const x=Math.log10(p);
+  if(x>=5)return 25;
+  for(let i=0;i<pontos.length-1;i++){
+    const [x1,y1]=pontos[i],[x2,y2]=pontos[i+1];
+    if(x<=x2)return Math.round(y1+(y2-y1)*(x-x1)/(x2-x1));
+  }
+  return 25;
+}
+function recalcularIRRLocalFeed(d){
+  if(d._irrBase==null)d._irrBase=d.irr;
+  const p=((d._coments||[]).length)*2+((d._fotosLocais||[]).length)*3+(d._likes||0)-(d._dislikes||0);
+  d.irr=Math.min(99,Math.max(1,d._irrBase+bonusComunidadeLocal(p)));
+  renderPins();
+}
+
+function renderFeed(){
+  const dados=(backendAtivo&&feedDados)?feedDados:feedLocal();
+  const base=API.replace('/api','');
+  document.getElementById('feed-lista').innerHTML=dados.map(d=>{
+    const fotos=d.fotos||[];
+    const idx=fotos.length?(fotoIdx[d.id]||0)%fotos.length:0;
+    // A foto pode ser: dados locais (_data), URL da nuvem (http...) ou arquivo do servidor
+    const fp=fotos.length?String(fotos[idx].foto_path):null;
+    const fotoSrc=fotos.length?((fotos[idx]._data||fp.startsWith('http')||fp.startsWith('data:'))?fp:`${base}/uploads/${fp}`):null;
+    const fotoHtml=fotoSrc?`<div class="feed-foto-wrap"><img class="feed-foto" src="${fotoSrc}" onclick="proximaFoto('${d.id}')" alt="foto da denúncia"/>${fotos.length>1?`<span class="feed-foto-badge">📷 ${idx+1}/${fotos.length}</span>`:''}</div>`:'';
+    const autor=d.anonima?'Anônimo':(d.nome_exibir||'Anônimo');
+    const meuVoto=meusVotos[d.id]||0;
+    return `<div class="feed-card" id="feed-card-${d.id}">
+      <div class="feed-titulo"><span class="feed-tipo">${tipoLabel(d.tipo)}</span><span class="feed-irr ${irrClass(d.irr)}">IRR ${d.irr}%</span></div>
+      ${fotoHtml}
+      <div class="feed-corpo">
+        <div class="feed-desc">${d.descricao||'(sem descrição)'}</div>
+        <div class="feed-info">📍 ${d.localizacao||'Vitória, ES'}<br/>📬 ${d.orgao?d.orgao.nome:'—'}${(d.orgao&&d.orgao.tel)?' · 📞 '+d.orgao.tel:''}</div>
+        <div class="feed-autor">publicado por ${autor}</div>
+      </div>
+      <div class="feed-acoes">
+        <button class="post-btn ${meuVoto===1?'curtido':''}" onclick="votarFeed('${d.id}',1)">👍 ${d.likes||0}</button>
+        <button class="post-btn ${meuVoto===-1?'dislike-ativo':''}" onclick="votarFeed('${d.id}',-1)">👎 ${d.dislikes||0}</button>
+        <button class="post-btn" onclick="toggleComentarios('${d.id}')">💬 ${d.comentarios||0}</button>
+        <button class="post-btn" onclick="pedirFotoFeed('${d.id}')">📷 Adicionar foto</button>
+      </div>
+      <div class="feed-comentarios" id="coments-${d.id}">
+        <div id="coments-lista-${d.id}"></div>
+        <div class="coment-row">
+          <input id="coment-input-${d.id}" placeholder="Escreva um comentário..." onkeydown="if(event.key==='Enter')comentarFeed('${d.id}')"/>
+          <button onclick="comentarFeed('${d.id}')">Enviar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')||'<div style="text-align:center;color:var(--suave);padding:2rem;font-size:.85rem;">Nenhuma denúncia ainda. Faça a primeira no mapa!</div>';
+}
+function proximaFoto(id){fotoIdx[id]=(fotoIdx[id]||0)+1;renderFeed();}
+
+// ── LIKE / DISLIKE ──
+async function votarFeed(id,voto){
+  const atual=meusVotos[id]||0;
+  const novo=(atual===voto)?0:voto;
+  meusVotos[id]=novo;
+  if(backendAtivo&&!String(id).startsWith('L')){
+    try{
+      const r=await fetch(`${API}/denuncias/${id}/votar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({voto,chave:chaveVoto()})});
+      const data=await r.json();
+      const d=(feedDados||[]).find(x=>x.id==id);
+      if(d){d.likes=data.likes;d.dislikes=data.dislikes;d.irr=data.irr;}
+      carregarDenunciasDoServidor(); // pins do mapa acompanham
+    }catch(e){}
+  } else {
+    const d=feedLocalRef(id);
+    if(d){
+      d._likes=d._likes||0;d._dislikes=d._dislikes||0;
+      if(atual===1)d._likes--; if(atual===-1)d._dislikes--;
+      if(novo===1)d._likes++; if(novo===-1)d._dislikes++;
+      recalcularIRRLocalFeed(d);
+    }
+  }
+  renderFeed();
+}
+
+// ── COMENTÁRIOS ──
+async function toggleComentarios(id){
+  const box=document.getElementById('coments-'+id);
+  const abrir=!box.classList.contains('aberto');
+  box.classList.toggle('aberto',abrir);
+  if(abrir)await carregarComentarios(id);
+}
+async function carregarComentarios(id){
+  const lista=document.getElementById('coments-lista-'+id);
+  if(!lista)return;
+  const vazio='<div class="coment" style="text-align:center;color:var(--suave)">Seja o primeiro a comentar!</div>';
+  if(backendAtivo&&!String(id).startsWith('L')){
+    try{
+      const r=await fetch(`${API}/denuncias/${id}/comentarios`);
+      const cs=await r.json();
+      lista.innerHTML=cs.map(c=>`<div class="coment"><b>${c.autor}</b> · <span style="font-size:.7rem;color:var(--suave)">${tempoRelativo(c.criado_em)}</span><br/>${c.texto}</div>`).join('')||vazio;
+    }catch(e){}
+  } else {
+    const d=feedLocalRef(id);
+    const cs=(d&&d._coments)||[];
+    lista.innerHTML=cs.map(c=>`<div class="coment"><b>${c.autor}</b><br/>${c.texto}</div>`).join('')||vazio;
+  }
+}
+async function comentarFeed(id){
+  const input=document.getElementById('coment-input-'+id);
+  const texto=input.value.trim(); if(!texto)return;
+  const autor=perfil?perfil.nome+' '+perfil.sobrenome:'Anônimo';
+  if(backendAtivo&&!String(id).startsWith('L')){
+    try{
+      const r=await fetch(`${API}/denuncias/${id}/comentarios`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({autor,texto,usuario_id:perfil?perfil._id:null})});
+      if(!r.ok)throw new Error();
+      await carregarFeedDoServidor();
+      carregarDenunciasDoServidor();
+    }catch(e){toast('Erro ao comentar','erro');return;}
+  } else {
+    const d=feedLocalRef(id); if(!d)return;
+    d._coments=d._coments||[];
+    d._coments.push({autor,texto});
+    recalcularIRRLocalFeed(d);
+    renderFeed();
+  }
+  // Reabre a caixa de comentários depois do re-render
+  const box=document.getElementById('coments-'+id);
+  if(box){box.classList.add('aberto');carregarComentarios(id);}
+}
+
+// ── ADICIONAR FOTO A UMA DENÚNCIA ──
+let fotoFeedId=null;
+function pedirFotoFeed(id){fotoFeedId=id;document.getElementById('input-foto-feed').click();}
+async function enviarFotoFeed(input){
+  const file=input.files[0]; if(!file||fotoFeedId==null)return;
+  const id=fotoFeedId; fotoFeedId=null; input.value='';
+  const autor=perfil?perfil.nome+' '+perfil.sobrenome:'Anônimo';
+  if(backendAtivo&&!String(id).startsWith('L')){
+    toast('🤖 IA verificando sua foto...');
+    const fd=new FormData();
+    fd.append('foto',file); fd.append('autor',autor);
+    try{
+      const r=await fetch(`${API}/denuncias/${id}/fotos`,{method:'POST',body:fd});
+      const data=await r.json();
+      if(r.ok){
+        toast(`📷 Foto adicionada — IRR agora ${data.irr}%`);
+        await carregarFeedDoServidor();
+        carregarDenunciasDoServidor();
+      } else {
+        toast(data.erro_foto?'🤖 Foto recusada: '+data.erro_foto:(data.erro||'Erro ao enviar'),'erro');
+      }
+    }catch(e){toast('Erro ao enviar foto','erro');}
+  } else {
+    const d=feedLocalRef(id); if(!d)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      d._fotosLocais=d._fotosLocais||[];
+      d._fotosLocais.push(e.target.result);
+      recalcularIRRLocalFeed(d);
+      renderFeed();
+      toast('📷 Foto adicionada!');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+renderFeed(); // primeira renderização (modo local até o servidor responder)
+
+// ─────────── PERFIL ───────────
+let editandoPerfil=false;
+
+function renderPerfil(){
+  const el=document.getElementById('perfil-conteudo');
+  if(!perfil){
+    el.innerHTML=`
+      <div class="perfil-vazio">
+        <div class="ico">👤</div>
+        <h2>Crie sua conta VIGIA</h2>
+        <p>Com uma conta, seus dados são preenchidos automaticamente em cada denúncia. Mais rápido, mais fácil.</p>
+        <button id="btn-criar-conta" onclick="mostrarFormConta()">Criar conta</button>
+      </div>`;
+  } else if(perfil._pendente){
+    // Conta criada, mas aguardando o código enviado por e-mail
+    el.innerHTML=`
+      <div class="perfil-vazio">
+        <div class="ico">📧</div>
+        <h2>Verifique seu e-mail</h2>
+        <p>Enviamos um código de 6 dígitos para<br/><strong>${perfil.email}</strong></p>
+        <div style="max-width:240px;margin:0 auto 1rem;">
+          <input id="v-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+            style="width:100%;padding:.8rem;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:1.4rem;font-weight:800;text-align:center;letter-spacing:8px;outline:none;font-family:inherit;"/>
+        </div>
+        <button id="btn-criar-conta" onclick="verificarCodigo()">✅ Verificar</button>
+        <div style="margin-top:1rem;display:flex;gap:1.2rem;justify-content:center;">
+          <a href="#" onclick="reenviarCodigo();return false;" style="color:var(--verde);font-size:.82rem;">Reenviar código</a>
+          <a href="#" onclick="sairConta();return false;" style="color:var(--suave);font-size:.82rem;">Sair da conta</a>
+        </div>
+      </div>`;
+  } else if(editandoPerfil){
+    mostrarFormConta(true);
+  } else {
+    const iniciais=(perfil.nome[0]+(perfil.sobrenome[0]||'')).toUpperCase();
+    el.innerHTML=`
+      <div class="perfil-header">
+        <div class="perfil-avatar">${iniciais}</div>
+        <div class="perfil-nome">${perfil.nome} ${perfil.sobrenome}</div>
+        <div class="perfil-sub">Membro VIGIA · Vitória, ES</div>
+      </div>
+      <div class="perfil-stats">
+        <div class="stat-card"><div class="num">${perfil.denuncias||0}</div><div class="label">Denúncias feitas</div></div>
+        <div class="stat-card"><div class="num">${perfil.denuncias||0}</div><div class="label">Resolvidas</div></div>
+      </div>
+      <div class="perfil-info-grid">
+        <div class="perfil-info-item"><div class="perfil-info-ico">📧</div><div><div class="perfil-info-label">E-mail</div><div class="perfil-info-val">${perfil.email||'—'}</div></div></div>
+        <div class="perfil-info-item"><div class="perfil-info-ico">📱</div><div><div class="perfil-info-label">Telefone</div><div class="perfil-info-val">${perfil.tel||'—'}</div></div></div>
+        <div class="perfil-info-item"><div class="perfil-info-ico">🪪</div><div><div class="perfil-info-label">CPF</div><div class="perfil-info-val">${perfil.cpf}</div></div></div>
+        <div class="perfil-info-item"><div class="perfil-info-ico">📮</div><div><div class="perfil-info-label">CEP</div><div class="perfil-info-val">${perfil.cep}</div></div></div>
+        <div class="perfil-info-item"><div class="perfil-info-ico">🎂</div><div><div class="perfil-info-label">Data de nascimento</div><div class="perfil-info-val">${perfil.nascimento||'—'}</div></div></div>
+        <div class="perfil-info-item"><div class="perfil-info-ico">⚧</div><div><div class="perfil-info-label">Gênero</div><div class="perfil-info-val">${{m:'Masculino',f:'Feminino',nb:'Não-binário',nd:'Prefiro não dizer'}[perfil.genero]||'—'}</div></div></div>
+      </div>
+      <div class="perfil-acoes">
+        <button class="btn-editar" onclick="editarPerfil()">✏️ Editar dados</button>
+        <button class="btn-sair" onclick="sairConta()">Sair da conta</button>
+      </div>`;
+  }
+}
+
+function mostrarFormConta(editando){
+  const el=document.getElementById('perfil-conteudo');
+  const p=editando&&perfil?perfil:{};
+  el.innerHTML=`
+    <div class="conta-form">
+      <h3>${editando?'✏️ Editar dados':'👤 Criar conta'}</h3>
+      <div class="perfil-row">
+        <div class="campo-perfil"><label>Nome *</label><input id="p-nome" type="text" value="${p.nome||''}" placeholder="João"/></div>
+        <div class="campo-perfil"><label>Sobrenome *</label><input id="p-sobrenome" type="text" value="${p.sobrenome||''}" placeholder="Silva"/></div>
+      </div>
+      <div class="campo-perfil"><label>E-mail *</label><input id="p-email" type="email" value="${p.email||''}" placeholder="joao@email.com"/></div>
+      <div class="campo-perfil"><label>Telefone</label><input id="p-tel" type="tel" value="${p.tel||''}" placeholder="(27) 99999-9999"/></div>
+      <div class="perfil-row">
+        <div class="campo-perfil"><label>CPF *</label><input id="p-cpf" type="text" value="${p.cpf||''}" placeholder="000.000.000-00" maxlength="14"/></div>
+        <div class="campo-perfil"><label>CEP *</label><input id="p-cep" type="text" value="${p.cep||''}" placeholder="29000-000" maxlength="9"/></div>
+      </div>
+      <div class="perfil-row">
+        <div class="campo-perfil"><label>Data de nascimento</label><input id="p-nasc" type="date" value="${p.nascimento||''}"/></div>
+        <div class="campo-perfil"><label>Gênero</label>
+          <select id="p-gen">
+            <option value="">Selecione</option>
+            <option value="m" ${p.genero==='m'?'selected':''}>Masculino</option>
+            <option value="f" ${p.genero==='f'?'selected':''}>Feminino</option>
+            <option value="nb" ${p.genero==='nb'?'selected':''}>Não-binário</option>
+            <option value="nd" ${p.genero==='nd'?'selected':''}>Prefiro não dizer</option>
+          </select>
+        </div>
+      </div>
+      ${editando?`<button class="btn-editar" style="width:100%;margin-bottom:.5rem" onclick="editandoPerfil=false;renderPerfil()">Cancelar</button>`:''}
+      <button id="btn-salvar-conta" onclick="salvarConta(${editando})">
+        ${editando?'💾 Salvar alterações':'✅ Criar conta'}
+      </button>
+    </div>`;
+
+  // máscaras no form de perfil
+  document.getElementById('p-cpf').addEventListener('input',function(){
+    let v=this.value.replace(/\D/g,'').slice(0,11);
+    v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    this.value=v;
+  });
+  document.getElementById('p-cep').addEventListener('input',function(){
+    let v=this.value.replace(/\D/g,'').slice(0,8);
+    if(v.length>5) v=v.replace(/(\d{5})(\d)/,'$1-$2');
+    this.value=v;
+  });
+}
+
+// Guarda a conta no "cofrinho" do navegador (localStorage).
+// Assim ela sobrevive a recarregamentos — fica salva neste aparelho
+// até a pessoa clicar em "Sair da conta".
+function salvarPerfilLocal(){
+  if(perfil)localStorage.setItem('vigia_perfil',JSON.stringify(perfil));
+  else localStorage.removeItem('vigia_perfil');
+}
+
+async function salvarConta(editando){
+  const nome=document.getElementById('p-nome').value.trim();
+  const sobrenome=document.getElementById('p-sobrenome').value.trim();
+  const email=document.getElementById('p-email').value.trim();
+  const cpf=document.getElementById('p-cpf').value.trim();
+  const cep=document.getElementById('p-cep').value.trim();
+  if(!nome||!sobrenome||!email||!cpf||!cep){ toast('Preencha os campos obrigatórios (*)','erro'); return; }
+  perfil={
+    nome, sobrenome, email, cpf, cep,
+    tel:document.getElementById('p-tel').value.trim(),
+    nascimento:document.getElementById('p-nasc').value,
+    genero:document.getElementById('p-gen').value,
+    denuncias: editando&&perfil ? (perfil.denuncias||0) : 0,
+    _id: editando&&perfil ? perfil._id : null
+  };
+  // Registra a conta também no servidor (quando ele estiver de pé),
+  // para o e-mail automático funcionar
+  if(backendAtivo&&!editando){
+    try{
+      const r=await fetch(API+'/usuarios',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({nome,sobrenome,email,tel:perfil.tel,cpf,cep,nascimento:perfil.nascimento,genero:perfil.genero})});
+      const data=await r.json();
+      if(r.ok){
+        perfil._id=data.usuario.id;
+        if(data.precisa_verificar)perfil._pendente=true; // aguarda o código do e-mail
+      }
+      else if(r.status===409){
+        // Conta já existia no servidor → entra nela
+        const l=await fetch(API+'/usuarios/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,cpf})});
+        const ld=await l.json();
+        if(l.ok)perfil._id=ld.usuario.id;
+        else if(l.status===403&&ld.precisa_verificar)perfil._pendente=true; // existia mas nunca foi verificada
+      }
+    }catch(e){}
+  }
+  salvarPerfilLocal();
+  editandoPerfil=false;
+  renderPerfil();
+  // Atualiza aba com check
+  document.getElementById('tab-perfil').textContent='✅ PERFIL';
+  toast(editando?'Dados atualizados!':(perfil._pendente?'📧 Conta criada! Digite o código enviado para seu e-mail.':'Conta criada! Seus dados serão usados nas denúncias.'));
+}
+
+// ── VERIFICAÇÃO DA CONTA (código de 6 dígitos do e-mail) ──
+async function verificarCodigo(){
+  const cod=(document.getElementById('v-codigo').value||'').trim();
+  if(cod.length!==6){toast('Digite o código de 6 dígitos','erro');return;}
+  try{
+    const r=await fetch(API+'/usuarios/verificar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:perfil.email,codigo:cod})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.erro||'Código incorreto');
+    perfil._pendente=false;
+    if(data.usuario&&data.usuario.id)perfil._id=data.usuario.id;
+    salvarPerfilLocal();
+    renderPerfil();
+    toast('🎉 Conta verificada! Bem-vindo ao VIGIA');
+  }catch(e){toast(e.message,'erro');}
+}
+async function reenviarCodigo(){
+  try{
+    const r=await fetch(API+'/usuarios/reenviar-codigo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:perfil.email})});
+    const data=await r.json();
+    if(r.ok)toast('📧 Novo código enviado para '+perfil.email);
+    else toast(data.erro||'Erro ao reenviar','erro');
+  }catch(e){toast('Erro ao reenviar','erro');}
+}
+
+function editarPerfil(){ editandoPerfil=true; mostrarFormConta(true); }
+
+function sairConta(){
+  if(!confirm('Sair da conta?')) return;
+  perfil=null; editandoPerfil=false;
+  salvarPerfilLocal();
+  document.getElementById('tab-perfil').textContent='👤 PERFIL';
+  renderPerfil();
+  toast('Você saiu da conta');
+}
+
+// Ao abrir o app, restaura a conta salva neste aparelho (se houver)
+try{
+  const salvo=localStorage.getItem('vigia_perfil');
+  if(salvo){ perfil=JSON.parse(salvo); document.getElementById('tab-perfil').textContent='✅ PERFIL'; }
+}catch(e){}
+renderPerfil();
+
+// Verifica se o backend está rodando ao abrir o app
+checarBackend();
+
+// ─────────── TELAS ───────────
+function trocarTela(id,tabEl){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('ativo'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('ativo'));
+  document.getElementById('screen-'+id).classList.add('ativo');
+  if(tabEl) tabEl.classList.add('ativo');
+  else document.querySelector(`.tab[onclick*="${id}"]`)?.classList.add('ativo');
+}
+
+// ─────────── TOAST ───────────
+function toast(msg, tipo){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=tipo==='erro'?'erro':'';
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+</script>
+</body>
+</html>

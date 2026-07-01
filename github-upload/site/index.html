@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIGIA – Monitore sua cidade</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --verde: #1DB954;
+      --verde-escuro: #148f3e;
+      --cinza-escuro: #1a1a2e;
+      --cinza-medio: #16213e;
+      --cinza-claro: #0f3460;
+      --branco: #ffffff;
+      --texto-suave: #b0b8c1;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--cinza-escuro);
+      color: var(--branco);
+      line-height: 1.6;
+    }
+
+    /* ─── NAVBAR ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2.5rem;
+      background: rgba(26, 26, 46, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(29, 185, 84, 0.2);
+    }
+
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--verde);
+      letter-spacing: 3px;
+    }
+
+    .logo span { color: var(--branco); }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+    }
+
+    /* ─── IRR BADGE ─── */
+    .irr-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 10px rgba(231,76,60,0.4);
+    }
+
+    /* ─── IRR SECTION ─── */
+    .irr-section {
+      padding: 5rem 2rem;
+      background: linear-gradient(135deg, var(--cinza-medio) 0%, rgba(15,52,96,0.4) 100%);
+      border-top: 1px solid rgba(29,185,84,0.1);
+      border-bottom: 1px solid rgba(29,185,84,0.1);
+    }
+
+    .irr-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    @media (max-width: 768px) { .irr-inner { grid-template-columns: 1fr; } }
+
+    .irr-text h2 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .irr-text h2 .irr-sigla {
+      color: #e74c3c;
+    }
+
+    .irr-text p {
+      color: var(--texto-suave);
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.7;
+    }
+
+    .irr-fatores {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .irr-fator {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+    }
+
+    .irr-fator-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+    .irr-fator-text strong {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--branco);
+      margin-bottom: 0.15rem;
+    }
+
+    .irr-fator-text span {
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+    }
+
+    /* Mockup de denúncia com IRR */
+    .irr-mockup {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .mockup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .mockup-title { font-weight: 700; font-size: 1rem; }
+    .mockup-cat {
+      background: rgba(29,185,84,0.15);
+      color: var(--verde);
+      padding: 0.25rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .mockup-foto {
+      width: 100%;
+      height: 130px;
+      background: linear-gradient(135deg, rgba(231,76,60,0.1), rgba(15,52,96,0.4));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      border: 1px dashed rgba(255,255,255,0.1);
+    }
+
+    .mockup-desc {
+      color: var(--texto-suave);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .mockup-irr-box {
+      background: rgba(231,76,60,0.08);
+      border: 1px solid rgba(231,76,60,0.3);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .mockup-irr-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .mockup-irr-label {
+      font-size: 0.75rem;
+      color: var(--texto-suave);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .mockup-irr-num {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #e74c3c;
+    }
+
+    .irr-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+    }
+
+    .irr-bar-fill {
+      height: 100%;
+      width: 87%;
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+      border-radius: 4px;
+    }
+
+    .mockup-irr-reason {
+      font-size: 0.75rem;
+      color: var(--texto-suave);
+      line-height: 1.5;
+    }
+
+    .mockup-irr-reason strong { color: #e74c3c; }
+
+    nav ul a {
+      color: var(--texto-suave);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    nav ul a:hover { color: var(--verde); }
+
+    .nav-btn {
+      background: var(--verde);
+      color: var(--branco) !important;
+      padding: 0.5rem 1.2rem;
+      border-radius: 25px;
+      font-weight: 600;
+      transition: background 0.3s !important;
+    }
+
+    .nav-btn:hover { background: var(--verde-escuro) !important; color: var(--branco) !important; }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      background: radial-gradient(ellipse at center top, rgba(29, 185, 84, 0.15) 0%, transparent 60%),
+                  linear-gradient(180deg, var(--cinza-escuro) 0%, var(--cinza-medio) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      border: 1px solid rgba(29, 185, 84, 0.1);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse 4s ease-in-out infinite;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      width: 900px; height: 900px;
+      border-radius: 50%;
+      border: 1px solid rgba(29, 185, 84, 0.05);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse 4s ease-in-out infinite 1s;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 750px; }
+
+    .badge {
+      display: inline-block;
+      background: rgba(29, 185, 84, 0.15);
+      border: 1px solid rgba(29, 185, 84, 0.4);
+      color: var(--verde);
+      padding: 0.4rem 1.2rem;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 .destaque { color: var(--verde); }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--texto-suave);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--verde);
+      color: var(--branco);
+      padding: 0.9rem 2rem;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s;
+      box-shadow: 0 4px 20px rgba(29, 185, 84, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: var(--verde-escuro);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(29, 185, 84, 0.45);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--branco);
+      padding: 0.9rem 2rem;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 2px solid rgba(255,255,255,0.2);
+      transition: all 0.3s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--verde);
+      color: var(--verde);
+    }
+
+    /* ─── STATS ─── */
+    .stats {
+      padding: 3rem 2rem;
+      background: var(--cinza-medio);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .stats-grid {
+      display: flex;
+      justify-content: center;
+      gap: 4rem;
+      flex-wrap: wrap;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--verde);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--texto-suave);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ─── COMO FUNCIONA ─── */
+    section {
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-sub {
+      text-align: center;
+      color: var(--texto-suave);
+      margin-bottom: 3.5rem;
+      font-size: 1.05rem;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2rem;
+    }
+
+    .step {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .step:hover {
+      border-color: var(--verde);
+      transform: translateY(-4px);
+    }
+
+    .step-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .step-num {
+      font-size: 0.75rem;
+      color: var(--verde);
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .step h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .step p { color: var(--texto-suave); font-size: 0.95rem; }
+
+    /* ─── FUNCIONALIDADES ─── */
+    .features-bg {
+      background: var(--cinza-medio);
+      padding: 5rem 2rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 1.75rem;
+      transition: border-color 0.3s;
+    }
+
+    .feature-card:hover { border-color: rgba(29, 185, 84, 0.4); }
+
+    .feature-icon {
+      width: 48px; height: 48px;
+      background: rgba(29, 185, 84, 0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p { color: var(--texto-suave); font-size: 0.9rem; }
+
+    /* ─── MAPA / VISUAL ─── */
+    .mapa-section {
+      text-align: center;
+      padding: 5rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .mapa-mockup {
+      background: var(--cinza-medio);
+      border: 1px solid rgba(29, 185, 84, 0.25);
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin: 2rem 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mapa-mockup::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 40%, rgba(29,185,84,0.08) 0%, transparent 50%),
+                  radial-gradient(circle at 70% 60%, rgba(29,185,84,0.06) 0%, transparent 50%);
+    }
+
+    .mapa-pins {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pin {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pin-icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      border: 2px solid;
+    }
+
+    .pin-icon.vermelho { background: rgba(231,76,60,0.15); border-color: #e74c3c; }
+    .pin-icon.laranja  { background: rgba(243,156,18,0.15); border-color: #f39c12; }
+    .pin-icon.amarelo  { background: rgba(241,196,15,0.15); border-color: #f1c40f; }
+    .pin-icon.verde    { background: rgba(29,185,84,0.15);  border-color: #1DB954; }
+
+    .pin-label { font-size: 0.8rem; color: var(--texto-suave); text-align: center; }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      text-align: center;
+      padding: 6rem 2rem;
+      background: linear-gradient(135deg, rgba(29,185,84,0.12) 0%, rgba(15,52,96,0.3) 100%);
+      border-top: 1px solid rgba(29,185,84,0.15);
+      border-bottom: 1px solid rgba(29,185,84,0.15);
+    }
+
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+
+    .cta-section p {
+      color: var(--texto-suave);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .email-form {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .email-form input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.85rem 1.25rem;
+      border-radius: 25px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07);
+      color: var(--branco);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .email-form input::placeholder { color: var(--texto-suave); }
+    .email-form input:focus { border-color: var(--verde); }
+
+    .email-form button {
+      background: var(--verde);
+      color: var(--branco);
+      border: none;
+      padding: 0.85rem 1.75rem;
+      border-radius: 25px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .email-form button:hover {
+      background: var(--verde-escuro);
+      transform: translateY(-1px);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 2.5rem 2rem;
+      color: var(--texto-suave);
+      font-size: 0.85rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    footer a { color: var(--verde); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="logo">VIG<span>IA</span></div>
+  <ul>
+    <li><a href="#como-funciona">Como funciona</a></li>
+    <li><a href="#irr">IRR</a></li>
+    <li><a href="#funcionalidades">Funcionalidades</a></li>
+    <li><a href="#download" class="nav-btn">Baixar app</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="inicio">
+  <div class="hero-content">
+    <div class="badge">📍 Grande Vitória, ES</div>
+    <h1>Sua cidade tem problemas.<br><span class="destaque">Você pode mudar isso.</span></h1>
+    <p>VIGIA é o app que conecta cidadãos à prefeitura. Reporte problemas de infraestrutura — e deixe a IA calcular o <strong style="color:#e74c3c">IRR</strong>, o índice que mostra o quanto cada problema precisa de atenção urgente.</p>
+    <div class="hero-btns">
+      <a href="#download" class="btn-primary">📱 Baixar VIGIA</a>
+      <a href="#como-funciona" class="btn-secondary">Ver como funciona</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-grid">
+    <div>
+      <div class="stat-num">+500</div>
+      <div class="stat-label">Problemas reportados</div>
+    </div>
+    <div>
+      <div class="stat-num">8x</div>
+      <div class="stat-label">Mais rápido que ligar pra prefeitura</div>
+    </div>
+    <div>
+      <div class="stat-num">3 min</div>
+      <div class="stat-label">Para fazer um reporte</div>
+    </div>
+    <div>
+      <div class="stat-num">100%</div>
+      <div class="stat-label">Gratuito</div>
+    </div>
+  </div>
+</div>
+
+<!-- COMO FUNCIONA -->
+<section id="como-funciona">
+  <h2 class="section-title">Como funciona</h2>
+  <p class="section-sub">Simples como tirar uma foto. Poderoso como uma voz coletiva.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-icon">📸</div>
+      <div class="step-num">Passo 01</div>
+      <h3>Viu um problema?</h3>
+      <p>Abra o VIGIA e tire uma foto do problema — buraco, poste apagado, calçada danificada, lixo acumulado.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">📍</div>
+      <div class="step-num">Passo 02</div>
+      <h3>Localização automática</h3>
+      <p>O app marca automaticamente onde você está no mapa, como o Waze faz com o trânsito.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">🏷️</div>
+      <div class="step-num">Passo 03</div>
+      <h3>Classifique o problema</h3>
+      <p>Escolha a categoria: pavimentação, iluminação, saneamento, coleta de lixo ou outro. Rápido e fácil.</p>
+    </div>
+    <div class="step">
+      <div class="step-icon">✅</div>
+      <div class="step-num">Passo 04</div>
+      <h3>Acompanhe a resolução</h3>
+      <p>Você recebe notificações sobre o status do seu reporte. Quando resolvido, você é o primeiro a saber.</p>
+    </div>
+  </div>
+</section>
+
+<!-- IRR SECTION -->
+<div class="irr-section" id="irr">
+  <div class="irr-inner">
+    <div class="irr-text">
+      <h2>Conheça o <span class="irr-sigla">IRR</span> —<br>Índice de Revolta e Relevância</h2>
+      <p>Todo problema reportado no VIGIA recebe automaticamente um <strong>IRR</strong>: uma porcentagem calculada por inteligência artificial que indica o quanto aquele problema precisa de atenção urgente da prefeitura.</p>
+      <p>Quanto maior o IRR, mais impactante é o problema para a cidade. A IA analisa o contexto completo — não apenas o que você reportou, mas quem é afetado e onde.</p>
+      <div class="irr-fatores">
+        <div class="irr-fator">
+          <div class="irr-fator-icon">👥</div>
+          <div class="irr-fator-text">
+            <strong>Pessoas afetadas</strong>
+            <span>Dados do IBGE sobre a população da área — quanto mais gente impactada, maior o IRR.</span>
+          </div>
+        </div>
+        <div class="irr-fator">
+          <div class="irr-fator-icon">🔑</div>
+          <div class="irr-fator-text">
+            <strong>Palavras-chave críticas</strong>
+            <span>A IA identifica termos como "hospital", "escola", "risco de vida", "criança" — elevando o IRR automaticamente.</span>
+          </div>
+        </div>
+        <div class="irr-fator">
+          <div class="irr-fator-icon">🌊</div>
+          <div class="irr-fator-text">
+            <strong>Impacto ambiental</strong>
+            <span>Problemas em praias, rios ou áreas verdes ganham peso extra por afetar o meio ambiente.</span>
+          </div>
+        </div>
+        <div class="irr-fator">
+          <div class="irr-fator-icon">🏛️</div>
+          <div class="irr-fator-text">
+            <strong>Dados da prefeitura</strong>
+            <span>Histórico da área, infraestrutura existente e prioridade regional são considerados.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="irr-mockup">
+      <div class="mockup-header">
+        <span class="mockup-title">🚨 Denúncia #4821</span>
+        <span class="mockup-cat">Saneamento</span>
+      </div>
+      <div class="mockup-foto">🏖️</div>
+      <div class="mockup-desc">
+        "Vazamento de esgoto direto na Praia de Camburi, próximo ao quiosque 12. Cheiro forte, crianças brincando perto. Risco de contaminação."
+      </div>
+      <div class="mockup-irr-box">
+        <div class="mockup-irr-row">
+          <span class="mockup-irr-label">IRR calculado pela IA</span>
+          <span class="mockup-irr-num">87%</span>
+        </div>
+        <div class="irr-bar-bg"><div class="irr-bar-fill"></div></div>
+        <div class="mockup-irr-reason">
+          <strong>Por que 87%:</strong> área de lazer público com +2.400 pessoas/dia (IBGE) · palavras-chave detectadas: <strong>"crianças"</strong>, <strong>"risco de contaminação"</strong> · impacto na vida marinha · praia sem saneamento adequado registrado
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAPA VISUAL -->
+<div class="mapa-section">
+  <h2 class="section-title">Vitória em <span style="color:var(--verde)">tempo real</span></h2>
+  <p style="color:var(--texto-suave); margin-bottom:2rem;">Cada problema reportado aparece no mapa. Você vê o que está acontecendo na sua rua, no seu bairro, na sua cidade.</p>
+  <div class="mapa-mockup">
+    <div class="mapa-pins">
+      <div class="pin">
+        <div class="pin-icon vermelho">🕳️</div>
+        <div class="pin-label">Buraco na pista<br><span class="irr-badge">IRR 91%</span></div>
+      </div>
+      <div class="pin">
+        <div class="pin-icon laranja">💡</div>
+        <div class="pin-label">Poste apagado<br><span class="irr-badge" style="background:linear-gradient(135deg,#f39c12,#d68910)">IRR 54%</span></div>
+      </div>
+      <div class="pin">
+        <div class="pin-icon amarelo">🚧</div>
+        <div class="pin-label">Calçada danificada<br><span class="irr-badge" style="background:linear-gradient(135deg,#f1c40f,#d4ac0d); color:#1a1a2e">IRR 38%</span></div>
+      </div>
+      <div class="pin">
+        <div class="pin-icon verde">✅</div>
+        <div class="pin-label">Esgoto na praia<br><span class="irr-badge">IRR 87%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FUNCIONALIDADES -->
+<div class="features-bg" id="funcionalidades">
+  <div style="max-width:1100px; margin:0 auto;">
+    <h2 class="section-title" style="margin-bottom:0.75rem;">Tudo que o VIGIA oferece</h2>
+    <p class="section-sub">Um app completo para o cidadão capixaba.</p>
+    <div class="features-grid">
+      <div class="feature-card" style="border-color: rgba(231,76,60,0.3);">
+        <div class="feature-icon" style="background:rgba(231,76,60,0.15)">🤖</div>
+        <h3>IRR — Índice de Revolta e Relevância</h3>
+        <p>Cada denúncia recebe automaticamente uma pontuação de 1% a 99% calculada por IA, baseada em dados do IBGE, palavras-chave e impacto ambiental.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>Mapa interativo</h3>
+        <p>Veja todos os problemas reportados na cidade em um mapa ao vivo, filtrado por bairro, categoria ou nível de IRR.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Notificações de status</h3>
+        <p>Saiba quando seu reporte foi recebido, analisado e resolvido pela prefeitura.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👍</div>
+        <h3>Confirmar problema</h3>
+        <p>Viu o mesmo buraco que outro cidadão reportou? Dê like para aumentar a prioridade.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Ranking de bairros</h3>
+        <p>Veja quais bairros têm mais problemas resolvidos e quais ainda precisam de atenção.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Reporte anônimo</h3>
+        <p>Não quer se identificar? Faça reports anônimos com total segurança.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Funciona offline</h3>
+        <p>Sem internet? Faça o reporte assim mesmo — ele é enviado automaticamente quando a conexão voltar.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA / LISTA DE ESPERA -->
+<div class="cta-section" id="download">
+  <h2>Seja o primeiro a ter o VIGIA</h2>
+  <p>O app está em desenvolvimento. Cadastre seu e-mail e avise quando lançar.</p>
+  <form class="email-form" onsubmit="handleSubmit(event)">
+    <input type="email" placeholder="seu@email.com" required />
+    <button type="submit">Quero ser avisado</button>
+  </form>
+  <p id="form-msg" style="margin-top:1rem; color:var(--verde); font-weight:600; display:none;">
+    ✅ Ótimo! Você está na lista. Avisaremos quando lançar.
+  </p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p style="margin-bottom:0.5rem;">
+    <strong style="color:var(--verde)">VIGIA</strong> — Feito em Vitória, ES 🇧🇷
+  </p>
+  <p>Um projeto de Fred Bichara · <a href="mailto:fredbichara@gmail.com">fredbichara@gmail.com</a></p>
+</footer>
+
+<script>
+  function handleSubmit(e) {
+    e.preventDefault();
+    document.getElementById('form-msg').style.display = 'block';
+    e.target.reset();
+  }
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Navbar scroll shadow
+  window.addEventListener('scroll', () => {
+    document.querySelector('nav').style.boxShadow =
+      window.scrollY > 20 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Coisas que NUNCA devem ir para o GitHub:
+
+# Pasta gigante de dependências (o Render instala sozinho)
+node_modules/
+
+# Chaves secretas (API da Anthropic, senha do Gmail)
+.env
+
+# Banco de dados local (o servidor cria um novo sozinho)
+backend/db/vigia.db
+backend/db/vigia.db-wal
+backend/db/vigia.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Fotos enviadas localmente
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Arquivos de sistema do Mac
+.DS_Store
+
+# Configurações locais do Claude Code (só deste computador)
+.claude/settings.local.json

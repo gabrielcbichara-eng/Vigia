@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site-vigia",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "-l", "5500", "site"],
+      "port": 5500
+    },
+    {
+      "name": "backend-vigia",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "backend", "start"],
+      "port": 3000
+    }
+  ]
+}

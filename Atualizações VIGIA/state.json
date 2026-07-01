@@ -1,0 +1,41 @@
+{
+  "last_checked": "2026-07-01T20:00:00-03:00",
+  "site_url": "https://gabrielcbichara-eng.github.io/Vigia/",
+  "repo_url": "https://github.com/gabrielcbichara-eng/Vigia",
+  "last_known_commit_sha": "6a044e1",
+  "last_known_commit_date": "2026-06-13",
+  "total_commits": 14,
+  "denuncias": [
+    {
+      "id": "buraco-avenida-rio-branco-545",
+      "categoria": "Buraco",
+      "descricao": "ciclovia estufada em local com alto fluxo de alunos em bicicletas eletricas",
+      "local": "545, Avenida Rio Branco, Santa Lucia",
+      "orgao": "SEINFRA - Secretaria de Infraestrutura de Vitoria",
+      "irr": "63%",
+      "autor": "Gabriel Bichara",
+      "likes": 1,
+      "dislikes": 1,
+      "comentarios": 1
+    },
+    {
+      "id": "outro-problema-rua-petrolino-191",
+      "categoria": "Outro problema",
+      "descricao": "Estacionamento na rua em lado nao permitido",
+      "local": "191, Rua Petrolino Cesar de Moraes, Mata da Praia",
+      "orgao": "Prefeitura de Vitoria - Central 156",
+      "irr": "12%",
+      "autor": "Anonimo",
+      "likes": 0,
+      "dislikes": 0,
+      "comentarios": 0
+    }
+  ],
+  "conversas_count": 0,
+  "perfil_logado": {
+    "nome": "Gabriel Bichara",
+    "email": "gabrielcbichara@gmail.com",
+    "denuncias_feitas": 0,
+    "resolvidas": 0
+  }
+}
