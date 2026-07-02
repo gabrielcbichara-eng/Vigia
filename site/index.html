@@ -505,6 +505,51 @@
 
     .feature-card p { color: var(--texto-suave); font-size: 0.9rem; }
 
+    /* ─── RANKINGS ─── */
+    .ranking-lista {
+      list-style: none;
+      margin-top: 1rem;
+    }
+
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.92rem;
+    }
+
+    .ranking-item:last-child { border-bottom: none; }
+
+    .ranking-trofeu {
+      font-size: 1.1rem;
+      width: 1.6rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .ranking-nome {
+      flex: 1;
+      color: var(--branco);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ranking-total {
+      color: var(--verde);
+      font-weight: 700;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .rankings-aviso {
+      text-align: center;
+      color: var(--texto-suave);
+      padding: 2rem;
+    }
+
     /* ─── MAPA / VISUAL ─── */
     .mapa-section {
       text-align: center;
@@ -648,7 +693,8 @@
     <li><a href="#como-funciona">Como funciona</a></li>
     <li><a href="#irr">IRR</a></li>
     <li><a href="#funcionalidades">Funcionalidades</a></li>
-    <li><a href="#download" class="nav-btn">Baixar app</a></li>
+    <li><a href="#rankings">Rankings</a></li>
+    <li><a href="https://gabrielcbichara-eng.github.io/Vigia/" class="nav-btn">Abrir o app</a></li>
   </ul>
 </nav>
 
@@ -659,7 +705,7 @@
     <h1>Sua cidade tem problemas.<br><span class="destaque">Você pode mudar isso.</span></h1>
     <p>VIGIA é o app que conecta cidadãos à prefeitura. Reporte problemas de infraestrutura — e deixe a IA calcular o <strong style="color:#e74c3c">IRR</strong>, o índice que mostra o quanto cada problema precisa de atenção urgente.</p>
     <div class="hero-btns">
-      <a href="#download" class="btn-primary">📱 Baixar VIGIA</a>
+      <a href="https://gabrielcbichara-eng.github.io/Vigia/" class="btn-primary">📱 Abrir o VIGIA</a>
       <a href="#como-funciona" class="btn-secondary">Ver como funciona</a>
     </div>
   </div>
@@ -669,12 +715,8 @@
 <div class="stats">
   <div class="stats-grid">
     <div>
-      <div class="stat-num">+500</div>
+      <div class="stat-num" id="stat-total">—</div>
       <div class="stat-label">Problemas reportados</div>
-    </div>
-    <div>
-      <div class="stat-num">8x</div>
-      <div class="stat-label">Mais rápido que ligar pra prefeitura</div>
     </div>
     <div>
       <div class="stat-num">3 min</div>
@@ -702,7 +744,7 @@
       <div class="step-icon">📍</div>
       <div class="step-num">Passo 02</div>
       <h3>Localização automática</h3>
-      <p>O app marca automaticamente onde você está no mapa, como o Waze faz com o trânsito.</p>
+      <p>O app marca automaticamente onde você está no mapa, usando o GPS do seu celular.</p>
     </div>
     <div class="step">
       <div class="step-icon">🏷️</div>
@@ -835,8 +877,8 @@
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
-        <h3>Ranking de bairros</h3>
-        <p>Veja quais bairros têm mais problemas resolvidos e quais ainda precisam de atenção.</p>
+        <h3>Rankings da cidade</h3>
+        <p>Veja quais bairros, tipos de problema e cidadãos mais aparecem nas denúncias — com dados reais, atualizados na hora.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔒</div>
@@ -852,17 +894,47 @@
   </div>
 </div>
 
-<!-- CTA / LISTA DE ESPERA -->
+<!-- RANKINGS -->
+<div class="features-bg" id="rankings">
+  <div style="max-width:1100px; margin:0 auto;">
+    <h2 class="section-title" style="margin-bottom:0.75rem;">Rankings</h2>
+    <p class="section-sub">Dados reais de quem já está usando o VIGIA — atualizados na hora.</p>
+
+    <p id="rankings-carregando" class="rankings-aviso">Carregando rankings...</p>
+    <p id="rankings-vazio" class="rankings-aviso" style="display:none;">Ainda não há denúncias suficientes para montar os rankings. Seja um dos primeiros!</p>
+    <p id="rankings-offline" class="rankings-aviso" style="display:none;">Não conseguimos carregar os rankings agora. Tente de novo mais tarde.</p>
+
+    <div id="rankings-grid" class="features-grid" style="display:none;">
+      <div class="feature-card">
+        <div class="feature-icon">🏘️</div>
+        <h3>Bairros com mais denúncias</h3>
+        <ol class="ranking-lista" id="ranking-bairros"></ol>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚧</div>
+        <h3>Problemas mais comuns</h3>
+        <ol class="ranking-lista" id="ranking-tipos"></ol>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🙋</div>
+        <h3>Cidadãos que mais denunciam</h3>
+        <ol class="ranking-lista" id="ranking-pessoas"></ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA / APP + LISTA DE NOVIDADES -->
 <div class="cta-section" id="download">
-  <h2>Seja o primeiro a ter o VIGIA</h2>
-  <p>O app está em desenvolvimento. Cadastre seu e-mail e avise quando lançar.</p>
+  <h2>O VIGIA já está no ar</h2>
+  <p>Comece a reportar problemas da sua cidade agora mesmo — é grátis.</p>
+  <a href="https://gabrielcbichara-eng.github.io/Vigia/" class="btn-primary" style="display:inline-block; margin-bottom:2.5rem;">📱 Abrir o VIGIA</a>
+  <p>Quer receber novidades por e-mail?</p>
   <form class="email-form" onsubmit="handleSubmit(event)">
-    <input type="email" placeholder="seu@email.com" required />
-    <button type="submit">Quero ser avisado</button>
+    <input type="email" id="email-input" placeholder="seu@email.com" required />
+    <button type="submit">Quero receber novidades</button>
   </form>
-  <p id="form-msg" style="margin-top:1rem; color:var(--verde); font-weight:600; display:none;">
-    ✅ Ótimo! Você está na lista. Avisaremos quando lançar.
-  </p>
+  <p id="form-msg" style="margin-top:1rem; font-weight:600; display:none;"></p>
 </div>
 
 <!-- FOOTER -->
@@ -870,14 +942,135 @@
   <p style="margin-bottom:0.5rem;">
     <strong style="color:var(--verde)">VIGIA</strong> — Feito em Vitória, ES 🇧🇷
   </p>
-  <p>Um projeto de Fred Bichara · <a href="mailto:fredbichara@gmail.com">fredbichara@gmail.com</a></p>
+  <p>Um projeto de Gabriel Bichara · <a href="mailto:vigia.operational@gmail.com">vigia.operational@gmail.com</a></p>
 </footer>
 
 <script>
-  function handleSubmit(e) {
+  // ─────────── BACKEND (mesma lógica do app: local primeiro, depois a nuvem) ───────────
+  const SERVIDORES = ['http://localhost:3000/api', 'https://vigia-idj3.onrender.com/api'];
+  let API = null;
+
+  async function encontrarBackend() {
+    for (const base of SERVIDORES) {
+      // O servidor gratuito da internet "dorme" e pode demorar a acordar
+      const espera = base.includes('localhost') ? 1200 : 60000;
+      try {
+        const r = await fetch(base + '/denuncias', { signal: AbortSignal.timeout(espera) });
+        if (r.ok) { API = base; return; }
+      } catch {}
+    }
+  }
+  encontrarBackend().then(() => {
+    carregarStatTotal();
+    carregarRankings();
+  });
+
+  // ─────────── STAT DE TOTAL (número real, não inventado) ───────────
+  async function carregarStatTotal() {
+    if (!API) return;
+    try {
+      const r = await fetch(API + '/denuncias/stats/resumo');
+      if (!r.ok) return;
+      const d = await r.json();
+      document.getElementById('stat-total').textContent = d.total ?? '—';
+    } catch {}
+  }
+
+  // ─────────── RANKINGS (bairros, tipos, pessoas) ───────────
+  const TIPO_LABELS = {
+    esgoto: 'Esgoto / Vazamento de esgoto', buraco: 'Buraco na pista/calçada',
+    poste: 'Poste de luz apagado', fiacao: 'Fiação elétrica solta/perigosa',
+    vazamento: 'Vazamento de água', lixo: 'Lixo acumulado',
+    calcada: 'Calçada danificada', arvore: 'Árvore caída ou em risco', outro: 'Outro problema'
+  };
+  const TROFEUS = ['🥇', '🥈', '🥉', '🏆', '🏆'];
+
+  function preencherRanking(id, lista, nomeFn) {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    lista.slice(0, 5).forEach((item, i) => {
+      const li = document.createElement('li');
+      li.className = 'ranking-item';
+      const trofeu = document.createElement('span');
+      trofeu.className = 'ranking-trofeu';
+      trofeu.textContent = TROFEUS[i] || '';
+      const nome = document.createElement('span');
+      nome.className = 'ranking-nome';
+      nome.textContent = nomeFn(item); // textContent = seguro contra HTML/scripts no nome
+      const total = document.createElement('span');
+      total.className = 'ranking-total';
+      total.textContent = item.total + (item.total === 1 ? ' denúncia' : ' denúncias');
+      li.append(trofeu, nome, total);
+      el.appendChild(li);
+    });
+  }
+
+  async function carregarRankings() {
+    const carregando = document.getElementById('rankings-carregando');
+    const vazio = document.getElementById('rankings-vazio');
+    const offline = document.getElementById('rankings-offline');
+    const grid = document.getElementById('rankings-grid');
+
+    if (!API) {
+      carregando.style.display = 'none';
+      offline.style.display = 'block';
+      return;
+    }
+    try {
+      const r = await fetch(API + '/denuncias/rankings');
+      if (!r.ok) throw new Error();
+      const dados = await r.json();
+      carregando.style.display = 'none';
+      if (!dados.bairros.length && !dados.tipos.length && !dados.pessoas.length) {
+        vazio.style.display = 'block';
+        return;
+      }
+      preencherRanking('ranking-bairros', dados.bairros, d => d.nome);
+      preencherRanking('ranking-tipos', dados.tipos, d => TIPO_LABELS[d.tipo] || d.tipo);
+      preencherRanking('ranking-pessoas', dados.pessoas, d => d.nome);
+      grid.style.display = 'grid';
+    } catch {
+      carregando.style.display = 'none';
+      offline.style.display = 'block';
+    }
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    document.getElementById('form-msg').style.display = 'block';
-    e.target.reset();
+    const input = document.getElementById('email-input');
+    const btn = e.target.querySelector('button');
+    const msg = document.getElementById('form-msg');
+    const email = input.value.trim();
+
+    if (!API) await encontrarBackend();
+    if (!API) {
+      msg.textContent = '⚠️ Não conseguimos conectar agora. Tente de novo em instantes.';
+      msg.style.color = '#e74c3c';
+      msg.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    try {
+      const r = await fetch(API + '/lista-espera', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!r.ok) throw new Error();
+      msg.textContent = '✅ Ótimo! Confira seu e-mail — mandamos uma confirmação.';
+      msg.style.color = 'var(--verde)';
+      msg.style.display = 'block';
+      e.target.reset();
+    } catch {
+      msg.textContent = '⚠️ Algo deu errado. Tente de novo em instantes.';
+      msg.style.color = '#e74c3c';
+      msg.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Quero receber novidades';
+    }
   }
 
   // Smooth scroll

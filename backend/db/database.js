@@ -152,6 +152,11 @@ async function init() {
       texto       TEXT NOT NULL,
       criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS lista_espera (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      email       TEXT UNIQUE NOT NULL,
+      criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Migrações para bancos antigos (ignoradas se a coluna já existe)

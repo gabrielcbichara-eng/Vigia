@@ -286,6 +286,46 @@ router.get('/stats/resumo', async (req, res) => {
   }
 });
 
+// ─── GET /api/denuncias/rankings ──────────────────────────────
+// Top 5 bairros, tipos de problema e cidadãos que mais denunciam.
+// Tudo calculado em cima de dados reais — nada inventado.
+router.get('/rankings', async (req, res) => {
+  try {
+    const denuncias = await db.all('SELECT tipo, localizacao, nome_exibir, anonima FROM denuncias');
+
+    // Bairro = última parte do texto de localização ("545, Av. X, Bairro Y" → "Bairro Y")
+    const bairros = {};
+    for (const d of denuncias) {
+      const loc = (d.localizacao || '').trim();
+      if (!loc) continue;
+      const partes = loc.split(',').map(p => p.trim()).filter(Boolean);
+      const bairro = partes.length ? partes[partes.length - 1] : loc;
+      bairros[bairro] = (bairros[bairro] || 0) + 1;
+    }
+
+    const tipos = {};
+    for (const d of denuncias) tipos[d.tipo] = (tipos[d.tipo] || 0) + 1;
+
+    // Pessoas: só quem denunciou sem ser anônimo (respeita quem pediu anonimato)
+    const pessoas = {};
+    for (const d of denuncias) {
+      if (Number(d.anonima) === 1) continue;
+      const nome = (d.nome_exibir || '').trim();
+      if (!nome) continue;
+      pessoas[nome] = (pessoas[nome] || 0) + 1;
+    }
+
+    const paraLista = obj => Object.entries(obj)
+      .map(([chave, total]) => ({ nome: chave, tipo: chave, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    res.json({ bairros: paraLista(bairros), tipos: paraLista(tipos), pessoas: paraLista(pessoas) });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
 // ─── GET /api/denuncias/:id ───────────────────────────────────
 // Detalhes de uma denúncia específica
 router.get('/:id', async (req, res) => {

@@ -196,4 +196,27 @@ async function enviarEmailDenuncia({ destinatario, nome, denuncia, orgao }) {
   }
 }
 
-module.exports = { enviarEmailDenuncia, enviarEmailCodigo, enviarEmailBoasVindas, emailConfigurado };
+// ── E-MAIL 4: confirmação de inscrição na lista de novidades (site) ──
+async function enviarEmailListaEspera({ destinatario }) {
+  const html = molduraVigia(`
+      <p style="font-size:1rem;color:#2d3748;margin-bottom:6px;">Você entrou! 🎉</p>
+      <p style="font-size:.93rem;color:#4a5568;line-height:1.6;margin-bottom:24px;">
+        A partir de agora você recebe novidades do VIGIA por e-mail. E o melhor: o app já está no ar — não precisa esperar nada para começar a usar.
+      </p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="https://gabrielcbichara-eng.github.io/Vigia/" style="display:inline-block;background:#1DB954;color:#ffffff;text-decoration:none;font-weight:700;font-size:.95rem;padding:14px 32px;border-radius:30px;">📱 Abrir o VIGIA</a>
+      </div>
+      <p style="font-size:.82rem;color:#718096;text-align:center;line-height:1.6;">
+        Obrigado por fazer parte da comunidade que ajuda a melhorar Vitória! 🏙️
+      </p>`);
+  try {
+    const ok = await enviar({ destinatario, assunto: '🎉 Você está na lista VIGIA!', html });
+    if (ok) console.log(`📧 Confirmação de lista de espera enviada para ${destinatario}`);
+    return ok;
+  } catch (err) {
+    console.error('❌ Erro ao enviar confirmação de lista de espera:', err.message);
+    return false;
+  }
+}
+
+module.exports = { enviarEmailDenuncia, enviarEmailCodigo, enviarEmailBoasVindas, enviarEmailListaEspera, emailConfigurado };
