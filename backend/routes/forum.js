@@ -12,6 +12,7 @@ const router = express.Router();
 const db = require('../db/database');
 const { ligarPostADenuncia } = require('../services/forum-ia');
 const { recalcularIRR } = require('../services/engajamento');
+const { checarAdmin } = require('../middleware/adminAuth');
 
 // ── LISTAR POSTS ──
 // Ordem por "pontuação de urgência": IRR da denúncia ligada vale
@@ -119,6 +120,31 @@ router.post('/:id/curtir', async (req, res) => {
     const novas = Math.max(0, Number(post.curtidas) + delta);
     await db.run('UPDATE forum_posts SET curtidas = ? WHERE id = ?', [novas, post.id]);
     res.json({ curtidas: novas });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
+// ─── DELETE /api/forum/:id ─────────────────────────────────────
+// Apaga um post e os comentários dele (admin — moderação)
+router.delete('/:id', checarAdmin, async (req, res) => {
+  try {
+    await db.run('DELETE FROM forum_comentarios WHERE post_id = ?', [req.params.id]);
+    const result = await db.run('DELETE FROM forum_posts WHERE id = ?', [req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ erro: 'Post não encontrado' });
+    res.json({ ok: true, mensagem: 'Post apagado' });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
+// ─── DELETE /api/forum/:id/comentarios/:comentarioId ───────────
+// Apaga um comentário de um post (admin — moderação)
+router.delete('/:id/comentarios/:comentarioId', checarAdmin, async (req, res) => {
+  try {
+    const result = await db.run('DELETE FROM forum_comentarios WHERE id = ? AND post_id = ?', [req.params.comentarioId, req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ erro: 'Comentário não encontrado' });
+    res.json({ ok: true, mensagem: 'Comentário apagado' });
   } catch (err) {
     res.status(500).json({ erro: 'Erro interno: ' + err.message });
   }

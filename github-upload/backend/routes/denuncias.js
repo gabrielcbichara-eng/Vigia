@@ -14,6 +14,7 @@ const { getOrgao } = require('../services/orgaos');
 const { encontrarDuplicada, verificarFoto } = require('../services/verificacao');
 const { recalcularIRR } = require('../services/engajamento');
 const { guardarFoto } = require('../services/fotos');
+const { checarAdmin } = require('../middleware/adminAuth');
 
 // Configuração do upload de fotos
 const storage = multer.diskStorage({
@@ -273,6 +274,35 @@ router.post('/:id/fotos', upload.single('foto'), async (req, res) => {
   }
 });
 
+// ─── POST /api/denuncias/:id/resolver ─────────────────────────
+// O autor da denúncia marca ela como resolvida (com foto do "depois"
+// opcional). Só quem denunciou pode fazer isso — não é rota de admin.
+router.post('/:id/resolver', upload.single('foto'), async (req, res) => {
+  try {
+    const den = await db.get('SELECT id, tipo, descricao, usuario_id FROM denuncias WHERE id = ?', [req.params.id]);
+    if (!den) return res.status(404).json({ erro: 'Denúncia não encontrada' });
+    const usuarioId = req.body.usuario_id;
+    if (!usuarioId || den.usuario_id == null || Number(usuarioId) !== Number(den.usuario_id)) {
+      return res.status(403).json({ erro: 'Só quem fez a denúncia pode marcar como resolvida' });
+    }
+
+    if (req.file) {
+      const check = await verificarFoto({ fotoPath: req.file.path, tipo: den.tipo, descricao: den.descricao });
+      if (!check.aprovada) {
+        return res.status(422).json({ erro_foto: check.motivo || 'A foto não parece corresponder ao problema.' });
+      }
+      const fotoRef = await guardarFoto(req.file.path, req.file.filename);
+      await db.run('INSERT INTO denuncia_fotos (denuncia_id, foto_path, autor) VALUES (?, ?, ?)', [den.id, fotoRef, 'Depois']);
+    }
+
+    await db.run("UPDATE denuncias SET status = 'resolvida' WHERE id = ?", [den.id]);
+    const r = await recalcularIRR(den.id);
+    res.json({ ok: true, mensagem: 'Denúncia marcada como resolvida!', irr: r ? r.irr : undefined });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
 // ─── GET /api/denuncias/stats/resumo ─────────────────────────
 // Estatísticas gerais (para dashboard)
 router.get('/stats/resumo', async (req, res) => {
@@ -341,9 +371,13 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─── DELETE /api/denuncias/:id ────────────────────────────────
-// Deletar uma denúncia (admin)
-router.delete('/:id', async (req, res) => {
+// Deletar uma denúncia por completo (admin) — fotos, comentários e
+// votos dela também são removidos, senão ficariam "órfãos" no banco.
+router.delete('/:id', checarAdmin, async (req, res) => {
   try {
+    await db.run('DELETE FROM denuncia_fotos WHERE denuncia_id = ?', [req.params.id]);
+    await db.run('DELETE FROM denuncia_comentarios WHERE denuncia_id = ?', [req.params.id]);
+    await db.run('DELETE FROM denuncia_votos WHERE denuncia_id = ?', [req.params.id]);
     const result = await db.run('DELETE FROM denuncias WHERE id = ?', [req.params.id]);
     if (result.changes === 0) return res.status(404).json({ erro: 'Denúncia não encontrada' });
     res.json({ ok: true, mensagem: 'Denúncia deletada' });
@@ -352,9 +386,9 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ─── PATCH /api/denuncias/:id ─────────────────────────────────
+// ─── PATCH /api/denuncias/:id/status ──────────────────────────
 // Atualizar status de uma denúncia (admin)
-router.patch('/:id', async (req, res) => {
+router.patch('/:id/status', checarAdmin, async (req, res) => {
   try {
     const { status } = req.body;
     if (!status || !['aberta', 'em_andamento', 'resolvida'].includes(status)) {
@@ -363,6 +397,30 @@ router.patch('/:id', async (req, res) => {
     const result = await db.run('UPDATE denuncias SET status = ? WHERE id = ?', [status, req.params.id]);
     if (result.changes === 0) return res.status(404).json({ erro: 'Denúncia não encontrada' });
     res.json({ ok: true, mensagem: 'Status atualizado', status });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
+// ─── DELETE /api/denuncias/:id/comentarios/:comentarioId ──────
+// Apagar um comentário de uma denúncia (admin — moderação)
+router.delete('/:id/comentarios/:comentarioId', checarAdmin, async (req, res) => {
+  try {
+    const result = await db.run('DELETE FROM denuncia_comentarios WHERE id = ? AND denuncia_id = ?', [req.params.comentarioId, req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ erro: 'Comentário não encontrado' });
+    res.json({ ok: true, mensagem: 'Comentário apagado' });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
+// ─── DELETE /api/denuncias/:id/fotos/:fotoId ──────────────────
+// Apagar uma foto de uma denúncia (admin — moderação)
+router.delete('/:id/fotos/:fotoId', checarAdmin, async (req, res) => {
+  try {
+    const result = await db.run('DELETE FROM denuncia_fotos WHERE id = ? AND denuncia_id = ?', [req.params.fotoId, req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ erro: 'Foto não encontrada' });
+    res.json({ ok: true, mensagem: 'Foto apagada' });
   } catch (err) {
     res.status(500).json({ erro: 'Erro interno: ' + err.message });
   }
