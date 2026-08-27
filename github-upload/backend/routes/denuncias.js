@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
   try {
     const denuncias = await db.all(`
       SELECT id, lat, lng, tipo, descricao, irr, irr_motivo,
-             anonima, nome_exibir, localizacao, status, criado_em
+             anonima, nome_exibir, localizacao, local, status, criado_em
       FROM denuncias
       ORDER BY criado_em DESC
     `);
@@ -57,7 +57,7 @@ router.get('/feed', async (req, res) => {
   try {
     const denuncias = await db.all(`
       SELECT id, lat, lng, tipo, descricao, irr, irr_motivo,
-             anonima, nome_exibir, localizacao, status, criado_em
+             anonima, nome_exibir, localizacao, local, status, criado_em
       FROM denuncias ORDER BY irr DESC, criado_em DESC
     `);
 
@@ -72,7 +72,7 @@ router.get('/feed', async (req, res) => {
       `, [d.id]);
       feed.push({
         ...d,
-        orgao: getOrgao(d.tipo),
+        orgao: getOrgao(d.tipo, d.local),
         fotos,
         comentarios: Number(com.n),
         likes: Number(votos.likes),
@@ -108,6 +108,7 @@ router.post('/verificar', async (req, res) => {
 router.post('/', upload.single('foto'), async (req, res) => {
   try {
     const { lat, lng, tipo, descricao, anonima, usuario_id, nome_exibir, localizacao, forcar_nova } = req.body;
+    const local = req.body.local === 'piranema' ? 'piranema' : 'vitoria';
 
     if (!lat || !lng || !tipo) {
       return res.status(400).json({ erro: 'lat, lng e tipo são obrigatórios' });
@@ -144,8 +145,8 @@ router.post('/', upload.single('foto'), async (req, res) => {
 
     // Salvar no banco (irr_base = nota técnica original)
     const result = await db.run(`
-      INSERT INTO denuncias (lat, lng, tipo, descricao, foto_path, irr, irr_base, irr_motivo, anonima, usuario_id, nome_exibir, localizacao)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO denuncias (lat, lng, tipo, descricao, foto_path, irr, irr_base, irr_motivo, anonima, usuario_id, nome_exibir, localizacao, local)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       parseFloat(lat), parseFloat(lng), tipo,
       descricao || null,
@@ -154,7 +155,8 @@ router.post('/', upload.single('foto'), async (req, res) => {
       anonima === 'true' || anonima === true ? 1 : 0,
       usuario_id || null,
       nome_exibir || null,
-      localizacao || null
+      localizacao || null,
+      local
     ]);
 
     // Registra a foto original também na galeria da denúncia
@@ -166,7 +168,7 @@ router.post('/', upload.single('foto'), async (req, res) => {
     }
 
     const denuncia = await db.get('SELECT * FROM denuncias WHERE id = ?', [result.lastInsertRowid]);
-    const orgao = getOrgao(tipo);
+    const orgao = getOrgao(tipo, local);
 
     // Enviar e-mail se usuário tem conta
     if (usuario_id && anonima !== 'true') {
@@ -332,7 +334,7 @@ router.get('/:id', async (req, res) => {
   try {
     const denuncia = await db.get('SELECT * FROM denuncias WHERE id = ?', [req.params.id]);
     if (!denuncia) return res.status(404).json({ erro: 'Denúncia não encontrada' });
-    res.json({ denuncia, orgao: getOrgao(denuncia.tipo) });
+    res.json({ denuncia, orgao: getOrgao(denuncia.tipo, denuncia.local) });
   } catch (err) {
     res.status(500).json({ erro: 'Erro interno: ' + err.message });
   }

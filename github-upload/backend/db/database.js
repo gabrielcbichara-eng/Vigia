@@ -108,6 +108,7 @@ async function init() {
       usuario_id  INTEGER,
       nome_exibir TEXT,
       localizacao TEXT,
+      local       TEXT DEFAULT 'vitoria',
       status      TEXT DEFAULT 'aberta',
       criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -164,6 +165,8 @@ async function init() {
   await tentarAlter('ALTER TABLE denuncias ADD COLUMN irr_base INTEGER');
   await tentarAlter('ALTER TABLE usuarios ADD COLUMN verificado INTEGER DEFAULT 0');
   await tentarAlter('ALTER TABLE usuarios ADD COLUMN codigo_verif TEXT');
+  await tentarAlter("ALTER TABLE denuncias ADD COLUMN local TEXT DEFAULT 'vitoria'");
+  await run("UPDATE denuncias SET local = 'vitoria' WHERE local IS NULL");
   await run('UPDATE denuncias SET irr_base = irr WHERE irr_base IS NULL');
   // Contas criadas antes da verificação existir ficam ativas
   await run('UPDATE usuarios SET verificado = 1 WHERE verificado = 0 AND codigo_verif IS NULL');
