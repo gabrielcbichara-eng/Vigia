@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VIGIA — Painel Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --verde:#1DB954;--verde-esc:#148f3e;--vermelho:#e74c3c;--laranja:#f39c12;
+  --bg:#1a1a2e;--card:#16213e;--card2:#0f1f3d;--borda:rgba(255,255,255,0.08);
+  --texto:#ffffff;--suave:#8892a4;--raio:14px;
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;}
+
+/* ── LOGIN ── */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+#login-card{background:var(--card);border:1px solid var(--borda);border-radius:20px;padding:2.5rem 2rem;max-width:360px;width:100%;text-align:center;}
+.logo{font-size:1.6rem;font-weight:900;color:var(--verde);letter-spacing:3px;margin-bottom:.3rem;}
+.logo span{color:#fff;}
+#login-card p{color:var(--suave);font-size:.85rem;margin-bottom:1.5rem;}
+#login-card input{width:100%;padding:.8rem 1rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.95rem;outline:none;margin-bottom:.8rem;}
+#login-card input:focus{border-color:var(--verde);}
+#login-card button{width:100%;padding:.8rem;border-radius:10px;background:var(--verde);border:none;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:.7rem;}
+#login-card button:hover{background:var(--verde-esc);}
+#login-card button.secundario{background:transparent;border:1px solid var(--borda);color:var(--suave);}
+#login-card button.secundario:hover{border-color:var(--verde);color:var(--verde);background:transparent;}
+#login-card button.link{background:none;border:none;color:var(--verde);font-weight:600;font-size:.82rem;width:auto;padding:.3rem;margin:0;}
+#login-erro{color:var(--vermelho);font-size:.82rem;margin-top:.8rem;min-height:1.2rem;}
+#login-msg{color:var(--verde);font-size:.82rem;margin-top:.8rem;min-height:1.2rem;}
+.login-passo{display:none;}
+.login-passo.ativo{display:block;}
+.pedido-item{display:flex;justify-content:space-between;align-items:center;gap:.6rem;background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:.9rem 1.1rem;margin-bottom:.6rem;}
+.pedido-email{font-size:.9rem;font-weight:600;}
+.pedido-tempo{font-size:.72rem;color:var(--suave);}
+.pedido-acoes{display:flex;gap:.5rem;flex-shrink:0;}
+.btn-aprovar{background:rgba(29,185,84,.15);border:1px solid rgba(29,185,84,.4);color:var(--verde);}
+.btn-aprovar:hover{background:rgba(29,185,84,.3);}
+
+/* ── PAINEL ── */
+#painel{display:none;max-width:900px;margin:0 auto;padding:1rem 1rem 3rem;}
+header{display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:1px solid var(--borda);margin-bottom:1rem;}
+header .logo{margin-bottom:0;font-size:1.3rem;}
+#btn-sair{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--vermelho);padding:.5rem 1rem;border-radius:10px;font-size:.82rem;cursor:pointer;}
+#btn-sair:hover{background:rgba(231,76,60,.2);}
+
+nav{display:flex;gap:.6rem;margin-bottom:1.2rem;}
+nav button{flex:1;padding:.7rem;border-radius:10px;background:var(--card);border:1px solid var(--borda);color:var(--suave);font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s;}
+nav button.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);color:var(--verde);}
+
+.aba{display:none;}
+.aba.ativa{display:block;}
+
+.card{background:var(--card);border:1px solid var(--borda);border-radius:var(--raio);padding:1rem 1.2rem;margin-bottom:.9rem;}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;margin-bottom:.5rem;flex-wrap:wrap;}
+.card-tipo{font-weight:800;font-size:1rem;}
+.badge{font-size:.72rem;font-weight:800;padding:.2rem .6rem;border-radius:10px;color:#fff;white-space:nowrap;}
+.badge.irr-alto{background:var(--vermelho);}
+.badge.irr-medio{background:var(--laranja);}
+.badge.irr-baixo{background:#27ae60;}
+.badge.status-aberta{background:rgba(231,76,60,.2);color:var(--vermelho);}
+.badge.status-em_andamento{background:rgba(243,156,18,.2);color:var(--laranja);}
+.badge.status-resolvida{background:rgba(39,174,96,.2);color:#27ae60;}
+.card-desc{font-size:.88rem;color:#c8d0da;line-height:1.5;margin-bottom:.5rem;}
+.card-info{font-size:.78rem;color:var(--suave);margin-bottom:.7rem;line-height:1.6;}
+
+.fotos-grid{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.7rem;}
+.foto-item{position:relative;width:90px;height:90px;border-radius:8px;overflow:hidden;}
+.foto-item img{width:100%;height:100%;object-fit:cover;}
+.foto-item button{position:absolute;top:2px;right:2px;background:rgba(231,76,60,.9);border:none;color:#fff;width:20px;height:20px;border-radius:50%;font-size:.7rem;cursor:pointer;line-height:1;}
+
+.acoes{display:flex;gap:.5rem;flex-wrap:wrap;}
+.btn{padding:.45rem .9rem;border-radius:20px;border:1px solid var(--borda);background:rgba(255,255,255,.05);color:var(--suave);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn:hover{border-color:var(--verde);color:var(--verde);}
+.btn.ativo-status{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);color:var(--verde);}
+.btn-apagar{background:rgba(231,76,60,.1);border-color:rgba(231,76,60,.3);color:var(--vermelho);}
+.btn-apagar:hover{background:rgba(231,76,60,.2);color:var(--vermelho);}
+
+.post-texto{font-size:.87rem;color:#c8d0da;line-height:1.6;margin-bottom:.6rem;}
+.coment-lista{margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--borda);}
+.coment-item{display:flex;justify-content:space-between;align-items:center;gap:.6rem;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .7rem;margin-bottom:.4rem;font-size:.8rem;color:#c8d0da;}
+.coment-item button{flex-shrink:0;}
+
+.vazio{text-align:center;color:var(--suave);padding:2rem;font-size:.85rem;}
+.carregando{text-align:center;color:var(--suave);padding:2rem;font-size:.85rem;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div id="login-card">
+    <div class="logo">VIG<span>IA</span></div>
+    <p>Painel de administração — acesso restrito</p>
+
+    <!-- PASSO 0: escolha inicial -->
+    <div class="login-passo ativo" id="passo-inicial">
+      <button onclick="mostrarPasso('criar-conta')">➕ Criar uma nova conta admin</button>
+      <button class="secundario" onclick="mostrarPasso('ja-tenho')">Já tem conta?</button>
+      <button class="link" onclick="mostrarPasso('geral')">🔑 Sou o admin geral</button>
+    </div>
+
+    <!-- LOGIN RÁPIDO DO ADMIN GERAL: só senha -->
+    <div class="login-passo" id="passo-geral">
+      <input id="senha-geral" type="password" placeholder="Senha do admin geral" onkeydown="if(event.key==='Enter')entrarComoGeral()"/>
+      <button onclick="entrarComoGeral()">Entrar</button>
+      <button class="link" onclick="mostrarPasso('inicial')">← Voltar</button>
+    </div>
+
+    <!-- CRIAR CONTA: pede acesso -->
+    <div class="login-passo" id="passo-criar-conta">
+      <input id="email-solicitar" type="email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')solicitarAcesso()"/>
+      <button onclick="solicitarAcesso()">Enviar</button>
+      <button class="link" onclick="mostrarPasso('inicial')">← Voltar</button>
+    </div>
+
+    <!-- JÁ TEM CONTA, passo 1: e-mail -->
+    <div class="login-passo" id="passo-ja-tenho">
+      <input id="email-entrar" type="email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')pedirCodigo()"/>
+      <button onclick="pedirCodigo()">Enviar código</button>
+      <button class="link" onclick="mostrarPasso('inicial')">← Voltar</button>
+    </div>
+
+    <!-- JÁ TEM CONTA, passo 2: código -->
+    <div class="login-passo" id="passo-codigo">
+      <input id="codigo-admin" type="text" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" onkeydown="if(event.key==='Enter')confirmarCodigo()"/>
+      <button onclick="confirmarCodigo()">Verificar</button>
+      <button class="link" onclick="mostrarPasso('ja-tenho')">← Voltar</button>
+    </div>
+
+    <div id="login-erro"></div>
+    <div id="login-msg"></div>
+  </div>
+</div>
+
+<!-- PAINEL -->
+<div id="painel">
+  <header>
+    <div class="logo">VIG<span>IA</span> <span style="font-size:.7rem;color:var(--suave);font-weight:400;">admin</span></div>
+    <button id="btn-sair" onclick="sair()">Sair</button>
+  </header>
+
+  <nav>
+    <button class="ativo" id="nav-denuncias" onclick="mostrarAba('denuncias')">🚨 Denúncias</button>
+    <button id="nav-forum" onclick="mostrarAba('forum')">💬 Fórum</button>
+    <button id="nav-pedidos" onclick="mostrarAba('pedidos')" style="display:none;">📋 Pedidos</button>
+    <button id="nav-admins" onclick="mostrarAba('admins')" style="display:none;">👤 Admins</button>
+  </nav>
+
+  <div class="aba ativa" id="aba-denuncias">
+    <div id="lista-denuncias" class="carregando">Carregando denúncias...</div>
+  </div>
+
+  <div class="aba" id="aba-forum">
+    <div id="lista-forum" class="carregando">Carregando fórum...</div>
+  </div>
+
+  <div class="aba" id="aba-pedidos">
+    <div id="lista-pedidos" class="carregando">Carregando pedidos...</div>
+  </div>
+
+  <div class="aba" id="aba-admins">
+    <div id="lista-admins" class="carregando">Carregando administradores...</div>
+  </div>
+</div>
+
+<script>
+// ─────────── BACKEND ───────────
+const SERVIDORES = ['http://localhost:3000/api', 'https://vigia-idj3.onrender.com/api'];
+let API = null;
+
+async function encontrarBackend() {
+  for (const base of SERVIDORES) {
+    const espera = base.includes('localhost') ? 1200 : 60000;
+    try {
+      const r = await fetch(base + '/denuncias', { signal: AbortSignal.timeout(espera) });
+      if (r.ok) { API = base; return; }
+    } catch {}
+  }
+}
+
+// ─────────── LOGIN (conta por e-mail + código) ───────────
+let tokenAtual = localStorage.getItem('vigia_admin_token') || '';
+let emailAtual = localStorage.getItem('vigia_admin_email') || '';
+let souAdminGeral = localStorage.getItem('vigia_admin_geral') === '1';
+let emailPendente = ''; // e-mail digitado no passo 1 de "Já tem conta?", aguardando o código
+
+function mostrarPasso(passo) {
+  document.querySelectorAll('.login-passo').forEach(el => el.classList.remove('ativo'));
+  document.getElementById('passo-' + passo).classList.add('ativo');
+  document.getElementById('login-erro').textContent = '';
+  document.getElementById('login-msg').textContent = '';
+}
+
+async function solicitarAcesso() {
+  const email = document.getElementById('email-solicitar').value.trim();
+  const erroEl = document.getElementById('login-erro');
+  const msgEl = document.getElementById('login-msg');
+  erroEl.textContent = ''; msgEl.textContent = '';
+  if (!email) { erroEl.textContent = 'Informe um e-mail'; return; }
+  if (!API) await encontrarBackend();
+  if (!API) { erroEl.textContent = '⚠️ Não conseguimos conectar ao servidor.'; return; }
+
+  try {
+    const r = await fetch(API + '/admin/solicitar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (!r.ok) { erroEl.textContent = d.erro || 'Erro ao enviar pedido'; return; }
+    msgEl.textContent = d.mensagem || 'Pedido enviado! Aguarde a aprovação.';
+    document.getElementById('email-solicitar').value = '';
+  } catch {
+    erroEl.textContent = '⚠️ Erro ao conectar.';
+  }
+}
+
+async function entrarComoGeral() {
+  const senha = document.getElementById('senha-geral').value;
+  const erroEl = document.getElementById('login-erro');
+  erroEl.textContent = '';
+  if (!senha) { erroEl.textContent = 'Informe a senha'; return; }
+  if (!API) await encontrarBackend();
+  if (!API) { erroEl.textContent = '⚠️ Não conseguimos conectar ao servidor.'; return; }
+
+  try {
+    const r = await fetch(API + '/admin/entrar-geral', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senha })
+    });
+    const d = await r.json();
+    if (!r.ok) { erroEl.textContent = d.erro || 'Senha incorreta'; return; }
+    tokenAtual = d.token; emailAtual = d.email; souAdminGeral = true;
+    localStorage.setItem('vigia_admin_token', tokenAtual);
+    localStorage.setItem('vigia_admin_email', emailAtual);
+    localStorage.setItem('vigia_admin_geral', '1');
+    entrarNoPainel();
+  } catch {
+    erroEl.textContent = '⚠️ Erro ao conectar.';
+  }
+}
+
+async function pedirCodigo() {
+  const email = document.getElementById('email-entrar').value.trim();
+  const erroEl = document.getElementById('login-erro');
+  erroEl.textContent = '';
+  if (!email) { erroEl.textContent = 'Informe um e-mail'; return; }
+  if (!API) await encontrarBackend();
+  if (!API) { erroEl.textContent = '⚠️ Não conseguimos conectar ao servidor.'; return; }
+
+  try {
+    const r = await fetch(API + '/admin/entrar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (!r.ok) { erroEl.textContent = d.erro || 'E-mail inválido, busque autorização'; return; }
+    emailPendente = email;
+    mostrarPasso('codigo');
+  } catch {
+    erroEl.textContent = '⚠️ Erro ao conectar.';
+  }
+}
+
+async function confirmarCodigo() {
+  const codigo = document.getElementById('codigo-admin').value.trim();
+  const erroEl = document.getElementById('login-erro');
+  erroEl.textContent = '';
+  if (codigo.length !== 6) { erroEl.textContent = 'Digite o código de 6 dígitos'; return; }
+
+  try {
+    const r = await fetch(API + '/admin/verificar-codigo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: emailPendente, codigo })
+    });
+    const d = await r.json();
+    if (!r.ok) { erroEl.textContent = d.erro || 'Código incorreto'; return; }
+    tokenAtual = d.token; emailAtual = d.email; souAdminGeral = !!d.admin_geral;
+    localStorage.setItem('vigia_admin_token', tokenAtual);
+    localStorage.setItem('vigia_admin_email', emailAtual);
+    localStorage.setItem('vigia_admin_geral', souAdminGeral ? '1' : '0');
+    entrarNoPainel();
+  } catch {
+    erroEl.textContent = '⚠️ Erro ao conectar.';
+  }
+}
+
+async function sair() {
+  try { await fetch(API + '/admin/sair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() }); } catch {}
+  tokenAtual = ''; emailAtual = ''; souAdminGeral = false;
+  localStorage.removeItem('vigia_admin_token');
+  localStorage.removeItem('vigia_admin_email');
+  localStorage.removeItem('vigia_admin_geral');
+  document.getElementById('painel').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  mostrarPasso('inicial');
+}
+
+async function entrarNoPainel() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('painel').style.display = 'block';
+  document.getElementById('nav-pedidos').style.display = souAdminGeral ? 'block' : 'none';
+  document.getElementById('nav-admins').style.display = souAdminGeral ? 'block' : 'none';
+  await carregarDenuncias();
+  await carregarForum();
+  const params = new URLSearchParams(location.search);
+  if (souAdminGeral && params.get('tab') === 'pedidos') {
+    mostrarAba('pedidos');
+  }
+}
+
+// Corpo (JSON) de qualquer requisição de admin: sempre inclui o
+// token de sessão junto com os outros dados.
+function corpoAdmin(extra) {
+  return JSON.stringify(Object.assign({ admin_token: tokenAtual }, extra || {}));
+}
+
+function mostrarAba(aba) {
+  document.getElementById('nav-denuncias').classList.toggle('ativo', aba === 'denuncias');
+  document.getElementById('nav-forum').classList.toggle('ativo', aba === 'forum');
+  document.getElementById('nav-pedidos').classList.toggle('ativo', aba === 'pedidos');
+  document.getElementById('nav-admins').classList.toggle('ativo', aba === 'admins');
+  document.getElementById('aba-denuncias').classList.toggle('ativa', aba === 'denuncias');
+  document.getElementById('aba-forum').classList.toggle('ativa', aba === 'forum');
+  document.getElementById('aba-pedidos').classList.toggle('ativa', aba === 'pedidos');
+  document.getElementById('aba-admins').classList.toggle('ativa', aba === 'admins');
+  if (aba === 'pedidos') carregarPedidos();
+  if (aba === 'admins') carregarAdmins();
+}
+
+// ─────────── ADMINS (só admin geral) ───────────
+async function carregarAdmins() {
+  const el = document.getElementById('lista-admins');
+  el.textContent = 'Carregando...';
+  try {
+    const r = await fetch(`${API}/admin/lista`, {
+      method: 'GET', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': tokenAtual }
+    });
+    const admins = await r.json();
+    if (!r.ok) { el.innerHTML = `<div class="vazio">⚠️ ${admins.erro || 'Erro ao carregar administradores'}</div>`; return; }
+    el.innerHTML = admins.map(a => `<div class="pedido-item">
+      <div>
+        <div class="pedido-email">${a.email} ${a.admin_geral ? '<span class="badge" style="background:rgba(29,185,84,.2);color:var(--verde);">Geral</span>' : ''}</div>
+        <div class="pedido-tempo">admin desde ${new Date(a.criado_em.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')}</div>
+      </div>
+      ${a.admin_geral ? '' : `<div class="pedido-acoes"><button class="btn btn-apagar" onclick="removerAdmin(${a.id})">🗑️ Remover</button></div>`}
+    </div>`).join('');
+  } catch {
+    el.innerHTML = '<div class="vazio">⚠️ Não foi possível carregar os administradores.</div>';
+  }
+}
+
+async function removerAdmin(id) {
+  if (!confirm('Remover esse administrador? Ele vai precisar pedir acesso de novo (Criar uma nova conta admin) e esperar aprovação.')) return;
+  try {
+    const r = await fetch(`${API}/admin/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+    const d = await r.json();
+    if (!r.ok) { alert(d.erro || 'Erro ao remover'); return; }
+    await carregarAdmins();
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+// ─────────── PEDIDOS DE ADMIN (só admin geral) ───────────
+async function carregarPedidos() {
+  const el = document.getElementById('lista-pedidos');
+  el.textContent = 'Carregando...';
+  try {
+    const r = await fetch(`${API}/admin/pedidos`, {
+      method: 'GET', headers: { 'Content-Type': 'application/json', 'X-Admin-Token': tokenAtual }
+    });
+    const pedidos = await r.json();
+    if (!r.ok) { el.innerHTML = `<div class="vazio">⚠️ ${pedidos.erro || 'Erro ao carregar pedidos'}</div>`; return; }
+    if (!pedidos.length) { el.innerHTML = '<div class="vazio">Nenhum pedido pendente.</div>'; return; }
+    el.innerHTML = pedidos.map(p => `<div class="pedido-item">
+      <div><div class="pedido-email">${p.email}</div><div class="pedido-tempo">pedido em ${new Date(p.criado_em.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')}</div></div>
+      <div class="pedido-acoes">
+        <button class="btn btn-aprovar" onclick="decidirPedido(${p.id}, 'aprovar')">✅ Aprovar</button>
+        <button class="btn btn-apagar" onclick="decidirPedido(${p.id}, 'negar')">✕ Negar</button>
+      </div>
+    </div>`).join('');
+  } catch {
+    el.innerHTML = '<div class="vazio">⚠️ Não foi possível carregar os pedidos.</div>';
+  }
+}
+
+async function decidirPedido(id, acao) {
+  if (!confirm(acao === 'aprovar' ? 'Aprovar esse pedido de admin?' : 'Negar esse pedido?')) return;
+  try {
+    const r = await fetch(`${API}/admin/pedidos/${id}/${acao}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin()
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.erro || 'Erro ao processar'); return; }
+    await carregarPedidos();
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+function irrClasse(v) { return v >= 70 ? 'irr-alto' : v >= 45 ? 'irr-medio' : 'irr-baixo'; }
+const TIPO_LABELS = {
+  esgoto: '🚰 Esgoto', buraco: '🕳️ Buraco', poste: '💡 Poste apagado', fiacao: '⚡ Fiação solta',
+  vazamento: '💧 Vazamento de água', lixo: '🗑️ Lixo acumulado', calcada: '🚶 Calçada danificada',
+  arvore: '🌳 Árvore em risco', outro: '📋 Outro problema'
+};
+const STATUS_LABELS = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' };
+
+// ─────────── DENÚNCIAS ───────────
+async function carregarDenuncias() {
+  const el = document.getElementById('lista-denuncias');
+  try {
+    const r = await fetch(API + '/denuncias/feed');
+    const dados = await r.json();
+    if (!dados.length) { el.innerHTML = '<div class="vazio">Nenhuma denúncia ainda.</div>'; return; }
+    el.innerHTML = dados.map(d => renderDenuncia(d)).join('');
+  } catch {
+    el.innerHTML = '<div class="vazio">⚠️ Não foi possível carregar as denúncias.</div>';
+  }
+}
+
+function renderDenuncia(d) {
+  const fotos = (d.fotos || []).map((f, i) => {
+    const src = String(f.foto_path).startsWith('http') ? f.foto_path : `${API.replace('/api', '')}/uploads/${f.foto_path}`;
+    return `<div class="foto-item"><img src="${src}" alt="foto"/><button onclick="apagarFoto(${d.id}, ${f.id != null ? f.id : "'" + i + "'"})" title="Apagar foto">✕</button></div>`;
+  }).join('');
+
+  const statusBtns = ['aberta', 'em_andamento', 'resolvida'].map(s =>
+    `<button class="btn ${d.status === s ? 'ativo-status' : ''}" onclick="mudarStatus(${d.id}, '${s}')">${STATUS_LABELS[s]}</button>`
+  ).join('');
+
+  return `<div class="card" id="denuncia-${d.id}">
+    <div class="card-top">
+      <span class="card-tipo">${TIPO_LABELS[d.tipo] || d.tipo} <span style="color:var(--suave);font-weight:400;font-size:.8rem;">#${d.id}</span></span>
+      <div style="display:flex;gap:.4rem;">
+        <span class="badge ${irrClasse(d.irr)}">IRR ${d.irr}%</span>
+        <span class="badge status-${d.status}">${STATUS_LABELS[d.status] || d.status}</span>
+      </div>
+    </div>
+    <div class="card-desc">${d.descricao || '(sem descrição)'}</div>
+    <div class="card-info">📍 ${d.localizacao || 'Vitória, ES'} · 👤 ${d.anonima ? 'Anônimo' : (d.nome_exibir || 'Anônimo')} · 👍 ${d.likes || 0} 👎 ${d.dislikes || 0} · 💬 ${d.comentarios || 0}</div>
+    ${fotos ? `<div class="fotos-grid">${fotos}</div>` : ''}
+    <div class="acoes">
+      ${statusBtns}
+      <button class="btn" onclick="toggleComentariosDenuncia(${d.id})">💬 Ver comentários</button>
+      <button class="btn btn-apagar" onclick="apagarDenuncia(${d.id})">🗑️ Apagar denúncia</button>
+    </div>
+    <div class="coment-lista" id="coments-denuncia-${d.id}" style="display:none;"></div>
+  </div>`;
+}
+
+async function toggleComentariosDenuncia(denunciaId) {
+  const box = document.getElementById(`coments-denuncia-${denunciaId}`);
+  const abrir = box.style.display === 'none';
+  box.style.display = abrir ? 'block' : 'none';
+  if (!abrir) return;
+  box.innerHTML = 'Carregando...';
+  try {
+    const r = await fetch(`${API}/denuncias/${denunciaId}/comentarios`);
+    const cs = await r.json();
+    box.innerHTML = cs.length ? cs.map(c => `<div class="coment-item"><span><b>${c.autor}</b>: ${c.texto}</span><button class="btn btn-apagar" onclick="apagarComentarioDenuncia(${denunciaId}, ${c.id})">✕</button></div>`).join('')
+      : '<div class="vazio" style="padding:.5rem;">Sem comentários.</div>';
+  } catch { box.innerHTML = '⚠️ Erro ao carregar comentários.'; }
+}
+
+async function apagarComentarioDenuncia(denunciaId, comentarioId) {
+  if (!confirm('Apagar esse comentário?')) return;
+  try {
+    const r = await fetch(`${API}/denuncias/${denunciaId}/comentarios/${comentarioId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao apagar'); return; }
+    await carregarDenuncias();
+    toggleComentariosDenuncia(denunciaId); toggleComentariosDenuncia(denunciaId);
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+async function mudarStatus(id, status) {
+  try {
+    const r = await fetch(`${API}/denuncias/${id}/status`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin({ status })
+    });
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao atualizar status'); return; }
+    await carregarDenuncias();
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+async function apagarDenuncia(id) {
+  if (!confirm('Apagar essa denúncia por completo? Isso remove fotos, comentários e votos dela. Não tem como desfazer.')) return;
+  try {
+    const r = await fetch(`${API}/denuncias/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao apagar'); return; }
+    await carregarDenuncias();
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+async function apagarFoto(denunciaId, fotoId) {
+  if (!confirm('Apagar essa foto?')) return;
+  try {
+    const r = await fetch(`${API}/denuncias/${denunciaId}/fotos/${fotoId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao apagar foto'); return; }
+    await carregarDenuncias();
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+// ─────────── FÓRUM ───────────
+async function carregarForum() {
+  const el = document.getElementById('lista-forum');
+  try {
+    const r = await fetch(API + '/forum');
+    const posts = await r.json();
+    if (!posts.length) { el.innerHTML = '<div class="vazio">Nenhum post ainda.</div>'; return; }
+    el.innerHTML = posts.map(p => `<div class="card" id="post-${p.id}">
+      <div class="card-top">
+        <span class="card-tipo">${p.autor}</span>
+        <span class="badge" style="background:rgba(29,185,84,.2);color:var(--verde);">${p.tag}</span>
+      </div>
+      <div class="post-texto">${p.texto}</div>
+      <div class="card-info">👍 ${p.curtidas} · 💬 ${p.comentarios || 0} comentários${p.denuncia_id ? ` · 🔗 denúncia #${p.denuncia_id}` : ''}</div>
+      <div class="acoes">
+        <button class="btn" onclick="toggleComentariosPost(${p.id})">💬 Ver comentários</button>
+        <button class="btn btn-apagar" onclick="apagarPost(${p.id})">🗑️ Apagar post</button>
+      </div>
+      <div class="coment-lista" id="coments-post-${p.id}" style="display:none;"></div>
+    </div>`).join('');
+  } catch {
+    el.innerHTML = '<div class="vazio">⚠️ Não foi possível carregar o fórum.</div>';
+  }
+}
+
+async function toggleComentariosPost(postId) {
+  const box = document.getElementById(`coments-post-${postId}`);
+  const abrir = box.style.display === 'none';
+  box.style.display = abrir ? 'block' : 'none';
+  if (!abrir) return;
+  box.innerHTML = 'Carregando...';
+  try {
+    const r = await fetch(`${API}/forum/${postId}/comentarios`);
+    const cs = await r.json();
+    box.innerHTML = cs.length ? cs.map(c => `<div class="coment-item"><span><b>${c.autor}</b>: ${c.texto}</span><button class="btn btn-apagar" onclick="apagarComentarioPost(${postId}, ${c.id})">✕</button></div>`).join('')
+      : '<div class="vazio" style="padding:.5rem;">Sem comentários.</div>';
+  } catch { box.innerHTML = '⚠️ Erro ao carregar comentários.'; }
+}
+
+async function apagarPost(id) {
+  if (!confirm('Apagar esse post e todos os comentários dele?')) return;
+  try {
+    const r = await fetch(`${API}/forum/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao apagar'); return; }
+    await carregarForum();
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+async function apagarComentarioPost(postId, comentarioId) {
+  if (!confirm('Apagar esse comentário?')) return;
+  try {
+    const r = await fetch(`${API}/forum/${postId}/comentarios/${comentarioId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao apagar'); return; }
+    toggleComentariosPost(postId); toggleComentariosPost(postId);
+  } catch { alert('Erro ao conectar com o servidor'); }
+}
+
+// ─────────── INÍCIO ───────────
+(async () => {
+  await encontrarBackend();
+  if (tokenAtual && API) {
+    // Já tinha token salvo — confere se ainda é válido antes de mostrar o painel
+    try {
+      const r = await fetch(API + '/admin/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() });
+      if (r.ok) {
+        const d = await r.json();
+        souAdminGeral = !!d.admin_geral;
+        localStorage.setItem('vigia_admin_geral', souAdminGeral ? '1' : '0');
+        await entrarNoPainel();
+        return;
+      }
+    } catch {}
+  }
+})();
+</script>
+</body>
+</html>
