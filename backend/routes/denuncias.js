@@ -338,4 +338,32 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// ─── DELETE /api/denuncias/:id ────────────────────────────────
+// Deletar uma denúncia (admin)
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await db.run('DELETE FROM denuncias WHERE id = ?', [req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ erro: 'Denúncia não encontrada' });
+    res.json({ ok: true, mensagem: 'Denúncia deletada' });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
+// ─── PATCH /api/denuncias/:id ─────────────────────────────────
+// Atualizar status de uma denúncia (admin)
+router.patch('/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status || !['aberta', 'em_andamento', 'resolvida'].includes(status)) {
+      return res.status(400).json({ erro: 'Status inválido' });
+    }
+    const result = await db.run('UPDATE denuncias SET status = ? WHERE id = ?', [status, req.params.id]);
+    if (result.changes === 0) return res.status(404).json({ erro: 'Denúncia não encontrada' });
+    res.json({ ok: true, mensagem: 'Status atualizado', status });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro interno: ' + err.message });
+  }
+});
+
 module.exports = router;

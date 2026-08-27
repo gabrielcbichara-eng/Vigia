@@ -35,6 +35,7 @@ app.use('/api/denuncias', require('./routes/denuncias'));
 app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api/forum', require('./routes/forum'));
 app.use('/api/lista-espera', require('./routes/lista-espera'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Rota raiz — só para confirmar que está funcionando
 app.get('/', (req, res) => {
