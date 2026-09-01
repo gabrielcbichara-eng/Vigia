@@ -368,15 +368,33 @@ async function carregarAdmins() {
     const admins = await r.json();
     if (!r.ok) { el.innerHTML = `<div class="vazio">⚠️ ${admins.erro || 'Erro ao carregar administradores'}</div>`; return; }
     el.innerHTML = admins.map(a => `<div class="pedido-item">
-      <div>
-        <div class="pedido-email">${a.email} ${a.admin_geral ? '<span class="badge" style="background:rgba(29,185,84,.2);color:var(--verde);">Geral</span>' : `<span class="regiao-badge">${REGIAO_LABELS[a.regiao] || 'Vitória e Piranema'}</span>`}</div>
+      <div style="flex:1;">
+        <div class="pedido-email">${a.email} ${a.admin_geral ? '<span class="badge" style="background:rgba(29,185,84,.2);color:var(--verde);">Geral</span>' : ''}</div>
         <div class="pedido-tempo">admin desde ${new Date(a.criado_em.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')}</div>
+        ${a.admin_geral ? '' : `<div class="pedido-regiao">
+          <span style="font-size:.75rem;color:var(--suave);">Vê:</span>
+          <select onchange="mudarRegiaoAdmin(${a.id}, this.value)">
+            <option value="ambos" ${a.regiao === 'ambos' ? 'selected' : ''}>Vitória e Piranema</option>
+            <option value="vitoria" ${a.regiao === 'vitoria' ? 'selected' : ''}>Só Vitória</option>
+            <option value="piranema" ${a.regiao === 'piranema' ? 'selected' : ''}>Só Piranema</option>
+          </select>
+        </div>`}
       </div>
       ${a.admin_geral ? '' : `<div class="pedido-acoes"><button class="btn btn-apagar" onclick="removerAdmin(${a.id})">🗑️ Remover</button></div>`}
     </div>`).join('');
   } catch {
     el.innerHTML = '<div class="vazio">⚠️ Não foi possível carregar os administradores.</div>';
   }
+}
+
+async function mudarRegiaoAdmin(id, regiao) {
+  try {
+    const r = await fetch(`${API}/admin/${id}/regiao`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin({ regiao })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(d.erro || 'Erro ao mudar região'); await carregarAdmins(); return; }
+  } catch { alert('Erro ao conectar com o servidor'); await carregarAdmins(); }
 }
 
 async function removerAdmin(id) {

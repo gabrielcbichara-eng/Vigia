@@ -217,6 +217,20 @@ router.get('/lista', checarAdminGeral, async (req, res) => {
   }
 });
 
+// ── Muda a região de um admin já aprovado (só admin geral) ──
+router.patch('/:id/regiao', checarAdminGeral, async (req, res) => {
+  try {
+    const alvo = await db.get('SELECT * FROM admins WHERE id = ?', [req.params.id]);
+    if (!alvo) return res.status(404).json({ erro: 'Admin não encontrado' });
+    if (alvo.admin_geral) return res.status(403).json({ erro: 'O administrador geral sempre vê tudo' });
+    const regiao = normalizarRegiao(req.body.regiao);
+    await db.run('UPDATE admins SET regiao = ? WHERE id = ?', [regiao, alvo.id]);
+    res.json({ mensagem: 'Região atualizada', regiao });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro: ' + err.message });
+  }
+});
+
 // ── Remove um administrador (só admin geral) ──
 // A conta removida perde a sessão na hora e precisa pedir acesso de
 // novo (Criar uma nova conta admin) e esperar aprovação, como se
