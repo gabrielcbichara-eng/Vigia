@@ -21,6 +21,11 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--texto);m
 #login-card p{color:var(--suave);font-size:.85rem;margin-bottom:1.5rem;}
 #login-card input{width:100%;padding:.8rem 1rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.95rem;outline:none;margin-bottom:.8rem;}
 #login-card input:focus{border-color:var(--verde);}
+#login-card select{width:100%;padding:.8rem 1rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.9rem;outline:none;margin-bottom:.8rem;}
+#login-card select:focus{border-color:var(--verde);}
+.regiao-badge{font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:8px;background:rgba(255,255,255,.08);color:var(--suave);white-space:nowrap;}
+.pedido-regiao{display:flex;align-items:center;gap:.4rem;margin-top:.3rem;}
+.pedido-regiao select{padding:.3rem .5rem;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--borda);color:var(--texto);font-size:.75rem;}
 #login-card button{width:100%;padding:.8rem;border-radius:10px;background:var(--verde);border:none;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:.7rem;}
 #login-card button:hover{background:var(--verde-esc);}
 #login-card button.secundario{background:transparent;border:1px solid var(--borda);color:var(--suave);}
@@ -81,6 +86,10 @@ nav button.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);
 .coment-item{display:flex;justify-content:space-between;align-items:center;gap:.6rem;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem .7rem;margin-bottom:.4rem;font-size:.8rem;color:#c8d0da;}
 .coment-item button{flex-shrink:0;}
 
+.filtro-regiao{display:flex;gap:.5rem;margin-bottom:.9rem;}
+.btn-regiao{flex:1;padding:.6rem;border-radius:10px;background:var(--card);border:1px solid var(--borda);color:var(--suave);font-weight:700;font-size:.85rem;cursor:pointer;}
+.btn-regiao.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);color:var(--verde);}
+
 .vazio{text-align:center;color:var(--suave);padding:2rem;font-size:.85rem;}
 .carregando{text-align:center;color:var(--suave);padding:2rem;font-size:.85rem;}
 </style>
@@ -110,6 +119,11 @@ nav button.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);
     <!-- CRIAR CONTA: pede acesso -->
     <div class="login-passo" id="passo-criar-conta">
       <input id="email-solicitar" type="email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')solicitarAcesso()"/>
+      <select id="regiao-solicitar">
+        <option value="ambos">Vitória e Piranema</option>
+        <option value="vitoria">Só Vitória</option>
+        <option value="piranema">Só Piranema (Cariacica)</option>
+      </select>
       <button onclick="solicitarAcesso()">Enviar</button>
       <button class="link" onclick="mostrarPasso('inicial')">← Voltar</button>
     </div>
@@ -148,6 +162,10 @@ nav button.ativo{background:rgba(29,185,84,.15);border-color:rgba(29,185,84,.4);
   </nav>
 
   <div class="aba ativa" id="aba-denuncias">
+    <div class="filtro-regiao" id="filtro-regiao-denuncias" style="display:none;">
+      <button class="btn-regiao ativo" data-regiao="vitoria" onclick="filtrarDenunciasPorRegiao('vitoria')">📍 Vitória</button>
+      <button class="btn-regiao" data-regiao="piranema" onclick="filtrarDenunciasPorRegiao('piranema')">📍 Piranema</button>
+    </div>
     <div id="lista-denuncias" class="carregando">Carregando denúncias...</div>
   </div>
 
@@ -183,6 +201,8 @@ async function encontrarBackend() {
 let tokenAtual = localStorage.getItem('vigia_admin_token') || '';
 let emailAtual = localStorage.getItem('vigia_admin_email') || '';
 let souAdminGeral = localStorage.getItem('vigia_admin_geral') === '1';
+let regiaoAtual = localStorage.getItem('vigia_admin_regiao') || 'ambos';
+let filtroDenunciasLocal = 'vitoria'; // aba ativa na lista de denúncias (quando há mais de uma região disponível)
 let emailPendente = ''; // e-mail digitado no passo 1 de "Já tem conta?", aguardando o código
 
 function mostrarPasso(passo) {
@@ -194,6 +214,7 @@ function mostrarPasso(passo) {
 
 async function solicitarAcesso() {
   const email = document.getElementById('email-solicitar').value.trim();
+  const regiao = document.getElementById('regiao-solicitar').value;
   const erroEl = document.getElementById('login-erro');
   const msgEl = document.getElementById('login-msg');
   erroEl.textContent = ''; msgEl.textContent = '';
@@ -203,7 +224,7 @@ async function solicitarAcesso() {
 
   try {
     const r = await fetch(API + '/admin/solicitar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, regiao })
     });
     const d = await r.json();
     if (!r.ok) { erroEl.textContent = d.erro || 'Erro ao enviar pedido'; return; }
@@ -228,10 +249,11 @@ async function entrarComoGeral() {
     });
     const d = await r.json();
     if (!r.ok) { erroEl.textContent = d.erro || 'Senha incorreta'; return; }
-    tokenAtual = d.token; emailAtual = d.email; souAdminGeral = true;
+    tokenAtual = d.token; emailAtual = d.email; souAdminGeral = true; regiaoAtual = 'ambos';
     localStorage.setItem('vigia_admin_token', tokenAtual);
     localStorage.setItem('vigia_admin_email', emailAtual);
     localStorage.setItem('vigia_admin_geral', '1');
+    localStorage.setItem('vigia_admin_regiao', regiaoAtual);
     entrarNoPainel();
   } catch {
     erroEl.textContent = '⚠️ Erro ao conectar.';
@@ -271,10 +293,11 @@ async function confirmarCodigo() {
     });
     const d = await r.json();
     if (!r.ok) { erroEl.textContent = d.erro || 'Código incorreto'; return; }
-    tokenAtual = d.token; emailAtual = d.email; souAdminGeral = !!d.admin_geral;
+    tokenAtual = d.token; emailAtual = d.email; souAdminGeral = !!d.admin_geral; regiaoAtual = d.regiao || 'ambos';
     localStorage.setItem('vigia_admin_token', tokenAtual);
     localStorage.setItem('vigia_admin_email', emailAtual);
     localStorage.setItem('vigia_admin_geral', souAdminGeral ? '1' : '0');
+    localStorage.setItem('vigia_admin_regiao', regiaoAtual);
     entrarNoPainel();
   } catch {
     erroEl.textContent = '⚠️ Erro ao conectar.';
@@ -283,10 +306,11 @@ async function confirmarCodigo() {
 
 async function sair() {
   try { await fetch(API + '/admin/sair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin() }); } catch {}
-  tokenAtual = ''; emailAtual = ''; souAdminGeral = false;
+  tokenAtual = ''; emailAtual = ''; souAdminGeral = false; regiaoAtual = 'ambos';
   localStorage.removeItem('vigia_admin_token');
   localStorage.removeItem('vigia_admin_email');
   localStorage.removeItem('vigia_admin_geral');
+  localStorage.removeItem('vigia_admin_regiao');
   document.getElementById('painel').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   mostrarPasso('inicial');
@@ -297,6 +321,15 @@ async function entrarNoPainel() {
   document.getElementById('painel').style.display = 'block';
   document.getElementById('nav-pedidos').style.display = souAdminGeral ? 'block' : 'none';
   document.getElementById('nav-admins').style.display = souAdminGeral ? 'block' : 'none';
+
+  // Admin geral e admins com regiao 'ambos' veem as duas abas (Vitória /
+  // Piranema) e escolhem qual olhar. Admin de uma região só vê a dele —
+  // sem aba nenhuma pra trocar, pra não se confundir com problema de
+  // outro território.
+  const vejoAsDuas = souAdminGeral || regiaoAtual === 'ambos';
+  document.getElementById('filtro-regiao-denuncias').style.display = vejoAsDuas ? 'flex' : 'none';
+  filtroDenunciasLocal = vejoAsDuas ? 'vitoria' : regiaoAtual;
+
   await carregarDenuncias();
   await carregarForum();
   const params = new URLSearchParams(location.search);
@@ -336,7 +369,7 @@ async function carregarAdmins() {
     if (!r.ok) { el.innerHTML = `<div class="vazio">⚠️ ${admins.erro || 'Erro ao carregar administradores'}</div>`; return; }
     el.innerHTML = admins.map(a => `<div class="pedido-item">
       <div>
-        <div class="pedido-email">${a.email} ${a.admin_geral ? '<span class="badge" style="background:rgba(29,185,84,.2);color:var(--verde);">Geral</span>' : ''}</div>
+        <div class="pedido-email">${a.email} ${a.admin_geral ? '<span class="badge" style="background:rgba(29,185,84,.2);color:var(--verde);">Geral</span>' : `<span class="regiao-badge">${REGIAO_LABELS[a.regiao] || 'Vitória e Piranema'}</span>`}</div>
         <div class="pedido-tempo">admin desde ${new Date(a.criado_em.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')}</div>
       </div>
       ${a.admin_geral ? '' : `<div class="pedido-acoes"><button class="btn btn-apagar" onclick="removerAdmin(${a.id})">🗑️ Remover</button></div>`}
@@ -368,7 +401,18 @@ async function carregarPedidos() {
     if (!r.ok) { el.innerHTML = `<div class="vazio">⚠️ ${pedidos.erro || 'Erro ao carregar pedidos'}</div>`; return; }
     if (!pedidos.length) { el.innerHTML = '<div class="vazio">Nenhum pedido pendente.</div>'; return; }
     el.innerHTML = pedidos.map(p => `<div class="pedido-item">
-      <div><div class="pedido-email">${p.email}</div><div class="pedido-tempo">pedido em ${new Date(p.criado_em.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')}</div></div>
+      <div style="flex:1;">
+        <div class="pedido-email">${p.email}</div>
+        <div class="pedido-tempo">pedido em ${new Date(p.criado_em.replace(' ', 'T') + 'Z').toLocaleString('pt-BR')} · pediu: ${REGIAO_LABELS[p.regiao_solicitada] || 'Vitória e Piranema'}</div>
+        <div class="pedido-regiao">
+          <span style="font-size:.75rem;color:var(--suave);">Aprovar como:</span>
+          <select id="regiao-pedido-${p.id}">
+            <option value="ambos" ${p.regiao_solicitada === 'ambos' ? 'selected' : ''}>Vitória e Piranema</option>
+            <option value="vitoria" ${p.regiao_solicitada === 'vitoria' ? 'selected' : ''}>Só Vitória</option>
+            <option value="piranema" ${p.regiao_solicitada === 'piranema' ? 'selected' : ''}>Só Piranema</option>
+          </select>
+        </div>
+      </div>
       <div class="pedido-acoes">
         <button class="btn btn-aprovar" onclick="decidirPedido(${p.id}, 'aprovar')">✅ Aprovar</button>
         <button class="btn btn-apagar" onclick="decidirPedido(${p.id}, 'negar')">✕ Negar</button>
@@ -381,9 +425,14 @@ async function carregarPedidos() {
 
 async function decidirPedido(id, acao) {
   if (!confirm(acao === 'aprovar' ? 'Aprovar esse pedido de admin?' : 'Negar esse pedido?')) return;
+  const extra = {};
+  if (acao === 'aprovar') {
+    const sel = document.getElementById(`regiao-pedido-${id}`);
+    if (sel) extra.regiao = sel.value;
+  }
   try {
     const r = await fetch(`${API}/admin/pedidos/${id}/${acao}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin()
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpoAdmin(extra)
     });
     const d = await r.json();
     if (!r.ok) { alert(d.erro || 'Erro ao processar'); return; }
@@ -391,6 +440,7 @@ async function decidirPedido(id, acao) {
   } catch { alert('Erro ao conectar com o servidor'); }
 }
 
+const REGIAO_LABELS = { vitoria: '📍 Vitória', piranema: '📍 Piranema', ambos: '📍 Vitória e Piranema' };
 function irrClasse(v) { return v >= 70 ? 'irr-alto' : v >= 45 ? 'irr-medio' : 'irr-baixo'; }
 const TIPO_LABELS = {
   esgoto: '🚰 Esgoto', buraco: '🕳️ Buraco', poste: '💡 Poste apagado', fiacao: '⚡ Fiação solta',
@@ -400,16 +450,41 @@ const TIPO_LABELS = {
 const STATUS_LABELS = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' };
 
 // ─────────── DENÚNCIAS ───────────
+let denunciasCache = [];
+
 async function carregarDenuncias() {
   const el = document.getElementById('lista-denuncias');
   try {
     const r = await fetch(API + '/denuncias/feed');
-    const dados = await r.json();
-    if (!dados.length) { el.innerHTML = '<div class="vazio">Nenhuma denúncia ainda.</div>'; return; }
-    el.innerHTML = dados.map(d => renderDenuncia(d)).join('');
+    denunciasCache = await r.json();
+    renderizarListaDenuncias();
   } catch {
     el.innerHTML = '<div class="vazio">⚠️ Não foi possível carregar as denúncias.</div>';
   }
+}
+
+// Um admin de uma região só nunca vê nada da outra — nem passando pelo
+// filtro de tela, pra não vazar problema de um território pro admin
+// errado por engano.
+function denunciasPermitidas() {
+  if (souAdminGeral) return denunciasCache;
+  if (regiaoAtual === 'ambos') return denunciasCache;
+  return denunciasCache.filter(d => (d.local || 'vitoria') === regiaoAtual);
+}
+
+function renderizarListaDenuncias() {
+  const el = document.getElementById('lista-denuncias');
+  let dados = denunciasPermitidas();
+  const vejoAsDuas = souAdminGeral || regiaoAtual === 'ambos';
+  if (vejoAsDuas) dados = dados.filter(d => (d.local || 'vitoria') === filtroDenunciasLocal);
+  if (!dados.length) { el.innerHTML = '<div class="vazio">Nenhuma denúncia ainda.</div>'; return; }
+  el.innerHTML = dados.map(d => renderDenuncia(d)).join('');
+}
+
+function filtrarDenunciasPorRegiao(regiao) {
+  filtroDenunciasLocal = regiao;
+  document.querySelectorAll('#filtro-regiao-denuncias .btn-regiao').forEach(b => b.classList.toggle('ativo', b.getAttribute('data-regiao') === regiao));
+  renderizarListaDenuncias();
 }
 
 function renderDenuncia(d) {
@@ -561,7 +636,9 @@ async function apagarComentarioPost(postId, comentarioId) {
       if (r.ok) {
         const d = await r.json();
         souAdminGeral = !!d.admin_geral;
+        regiaoAtual = d.regiao || 'ambos';
         localStorage.setItem('vigia_admin_geral', souAdminGeral ? '1' : '0');
+        localStorage.setItem('vigia_admin_regiao', regiaoAtual);
         await entrarNoPainel();
         return;
       }

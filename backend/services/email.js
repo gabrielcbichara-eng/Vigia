@@ -219,4 +219,89 @@ async function enviarEmailListaEspera({ destinatario }) {
   }
 }
 
-module.exports = { enviarEmailDenuncia, enviarEmailCodigo, enviarEmailBoasVindas, enviarEmailListaEspera, emailConfigurado };
+// ── E-MAIL 5: código de acesso ao painel admin ──
+async function enviarEmailCodigoAdmin({ destinatario, codigo }) {
+  const html = molduraVigia(`
+      <p style="font-size:1rem;color:#2d3748;margin-bottom:6px;">Código de acesso ao painel</p>
+      <p style="font-size:.93rem;color:#4a5568;line-height:1.6;margin-bottom:24px;">
+        Digite este código para entrar no painel de administração do VIGIA:
+      </p>
+      <div style="background:#f0fff4;border:2px dashed #1DB954;border-radius:12px;padding:22px;text-align:center;margin-bottom:24px;">
+        <div style="font-size:2.4rem;font-weight:900;letter-spacing:10px;color:#148f3e;">${codigo}</div>
+      </div>
+      <p style="font-size:.82rem;color:#718096;text-align:center;line-height:1.6;">
+        Se você não pediu este código, ignore este e-mail — sua conta continua segura.
+      </p>`);
+  try {
+    const ok = await enviar({ destinatario, assunto: `🔑 Código de acesso ao painel VIGIA: ${codigo}`, html });
+    if (ok) console.log(`📧 Código de admin enviado para ${destinatario}`);
+    return { ok, erro: ok ? null : 'Envio retornou falso — veja os logs do servidor' };
+  } catch (err) {
+    console.error('❌ Erro ao enviar código de admin:', err.message);
+    return { ok: false, erro: err.message };
+  }
+}
+
+// ── E-MAIL 6: aviso pro admin geral de um novo pedido de acesso ──
+async function enviarEmailPedidoAdmin({ destinatario, emailSolicitante }) {
+  const link = 'https://gabrielcbichara-eng.github.io/Vigia/admin/?tab=pedidos';
+  const html = molduraVigia(`
+      <p style="font-size:1rem;color:#2d3748;margin-bottom:6px;">Novo pedido de acesso admin</p>
+      <p style="font-size:.93rem;color:#4a5568;line-height:1.6;margin-bottom:24px;">
+        O e-mail <strong>${emailSolicitante}</strong> pediu para ser administrador do VIGIA. Só você, como administrador geral, pode aprovar ou negar.
+      </p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="${link}" style="display:inline-block;background:#1DB954;color:#ffffff;text-decoration:none;font-weight:700;font-size:.95rem;padding:14px 32px;border-radius:30px;">Abrir painel e decidir</a>
+      </div>`);
+  try {
+    const ok = await enviar({ destinatario, assunto: `👤 Novo pedido de acesso admin: ${emailSolicitante}`, html });
+    if (ok) console.log(`📧 Aviso de pedido de admin enviado para ${destinatario}`);
+    return ok;
+  } catch (err) {
+    console.error('❌ Erro ao enviar aviso de pedido de admin:', err.message);
+    return false;
+  }
+}
+
+// ── E-MAIL 7: pedido de admin aprovado ──
+async function enviarEmailAdminAprovado({ destinatario }) {
+  const html = molduraVigia(`
+      <p style="font-size:1rem;color:#2d3748;margin-bottom:6px;">Parabéns! 🎉</p>
+      <p style="font-size:.93rem;color:#4a5568;line-height:1.6;margin-bottom:24px;">
+        Seu pedido de acesso administrativo ao VIGIA foi <strong>aprovado</strong>. Agora você já pode entrar no painel usando este e-mail.
+      </p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <a href="https://gabrielcbichara-eng.github.io/Vigia/admin/" style="display:inline-block;background:#1DB954;color:#ffffff;text-decoration:none;font-weight:700;font-size:.95rem;padding:14px 32px;border-radius:30px;">Abrir painel admin</a>
+      </div>`);
+  try {
+    const ok = await enviar({ destinatario, assunto: '🎉 Você agora é administrador do VIGIA!', html });
+    if (ok) console.log(`📧 Aprovação de admin enviada para ${destinatario}`);
+    return ok;
+  } catch (err) {
+    console.error('❌ Erro ao enviar aprovação de admin:', err.message);
+    return false;
+  }
+}
+
+// ── E-MAIL 8: pedido de admin negado ──
+async function enviarEmailAdminNegado({ destinatario }) {
+  const html = molduraVigia(`
+      <p style="font-size:1rem;color:#2d3748;margin-bottom:6px;">Sobre seu pedido de acesso</p>
+      <p style="font-size:.93rem;color:#4a5568;line-height:1.6;">
+        Seu pedido para ser administrador do VIGIA não foi aprovado. Se você acredita que isso é um engano, entre em contato com a equipe do VIGIA.
+      </p>`);
+  try {
+    const ok = await enviar({ destinatario, assunto: 'Sobre seu pedido de acesso admin — VIGIA', html });
+    if (ok) console.log(`📧 Negação de admin enviada para ${destinatario}`);
+    return ok;
+  } catch (err) {
+    console.error('❌ Erro ao enviar negação de admin:', err.message);
+    return false;
+  }
+}
+
+module.exports = {
+  enviarEmailDenuncia, enviarEmailCodigo, enviarEmailBoasVindas, enviarEmailListaEspera,
+  enviarEmailCodigoAdmin, enviarEmailPedidoAdmin, enviarEmailAdminAprovado, enviarEmailAdminNegado,
+  emailConfigurado
+};

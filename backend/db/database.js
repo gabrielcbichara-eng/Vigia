@@ -153,6 +153,17 @@ async function init() {
       texto       TEXT NOT NULL,
       criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS admins (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      email       TEXT UNIQUE NOT NULL,
+      status      TEXT DEFAULT 'pendente',
+      admin_geral INTEGER DEFAULT 0,
+      codigo_verif TEXT,
+      sessao_token TEXT,
+      regiao      TEXT DEFAULT 'ambos',
+      regiao_solicitada TEXT DEFAULT 'ambos',
+      criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS lista_espera (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       email       TEXT UNIQUE NOT NULL,
@@ -167,6 +178,9 @@ async function init() {
   await tentarAlter('ALTER TABLE usuarios ADD COLUMN codigo_verif TEXT');
   await tentarAlter("ALTER TABLE denuncias ADD COLUMN local TEXT DEFAULT 'vitoria'");
   await run("UPDATE denuncias SET local = 'vitoria' WHERE local IS NULL");
+  await tentarAlter("ALTER TABLE admins ADD COLUMN regiao TEXT DEFAULT 'ambos'");
+  await tentarAlter("ALTER TABLE admins ADD COLUMN regiao_solicitada TEXT DEFAULT 'ambos'");
+  await run("UPDATE admins SET regiao = 'ambos' WHERE regiao IS NULL");
   await run('UPDATE denuncias SET irr_base = irr WHERE irr_base IS NULL');
   // Contas criadas antes da verificação existir ficam ativas
   await run('UPDATE usuarios SET verificado = 1 WHERE verificado = 0 AND codigo_verif IS NULL');

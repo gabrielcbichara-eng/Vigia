@@ -37,6 +37,11 @@ function gerarToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
+const REGIOES_VALIDAS = ['vitoria', 'piranema', 'ambos'];
+function normalizarRegiao(v) {
+  return REGIOES_VALIDAS.includes(v) ? v : 'ambos';
+}
+
 // ── Login rápido do admin geral: só senha, sem e-mail/código ──
 router.post('/entrar-geral', async (req, res) => {
   try {
@@ -52,7 +57,7 @@ router.post('/entrar-geral', async (req, res) => {
 
     const token = gerarToken();
     await db.run('UPDATE admins SET sessao_token = ? WHERE id = ?', [token, geral.id]);
-    res.json({ token, email: geral.email, admin_geral: true });
+    res.json({ token, email: geral.email, admin_geral: true, regiao: 'ambos' });
   } catch (err) {
     res.status(500).json({ erro: 'Erro: ' + err.message });
   }
@@ -107,7 +112,7 @@ router.post('/verificar-codigo', async (req, res) => {
 
     const token = gerarToken();
     await db.run('UPDATE admins SET sessao_token = ?, codigo_verif = NULL WHERE id = ?', [token, admin.id]);
-    res.json({ token, email: admin.email, admin_geral: !!admin.admin_geral });
+    res.json({ token, email: admin.email, admin_geral: !!admin.admin_geral, regiao: admin.admin_geral ? 'ambos' : (admin.regiao || 'ambos') });
   } catch (err) {
     res.status(500).json({ erro: 'Erro: ' + err.message });
   }
@@ -117,7 +122,7 @@ router.post('/verificar-codigo', async (req, res) => {
 router.post('/me', async (req, res) => {
   const admin = await pegarAdmin(req);
   if (!admin) return res.status(401).json({ erro: 'Sessão inválida' });
-  res.json({ email: admin.email, admin_geral: !!admin.admin_geral });
+  res.json({ email: admin.email, admin_geral: !!admin.admin_geral, regiao: admin.admin_geral ? 'ambos' : (admin.regiao || 'ambos') });
 });
 
 // ── Sai da conta (invalida o token no servidor) ──
@@ -136,6 +141,7 @@ router.post('/solicitar', async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
     if (!email || !email.includes('@')) return res.status(400).json({ erro: 'Informe um e-mail válido' });
+    const regiao = normalizarRegiao(req.body.regiao);
 
     const existente = await db.get('SELECT * FROM admins WHERE email = ?', [email]);
     if (existente && existente.status === 'aprovado') {
@@ -146,9 +152,9 @@ router.post('/solicitar', async (req, res) => {
     }
 
     if (existente) {
-      await db.run("UPDATE admins SET status = 'pendente' WHERE id = ?", [existente.id]);
+      await db.run("UPDATE admins SET status = 'pendente', regiao_solicitada = ?, regiao = ? WHERE id = ?", [regiao, regiao, existente.id]);
     } else {
-      await db.run("INSERT INTO admins (email, status) VALUES (?, 'pendente')", [email]);
+      await db.run("INSERT INTO admins (email, status, regiao_solicitada, regiao) VALUES (?, 'pendente', ?, ?)", [email, regiao, regiao]);
     }
 
     // Avisa o(s) admin(s) geral(is) por e-mail, com link direto pro painel
@@ -166,7 +172,7 @@ router.post('/solicitar', async (req, res) => {
 // ── Lista pedidos pendentes (só admin geral) ──
 router.get('/pedidos', checarAdminGeral, async (req, res) => {
   try {
-    const pedidos = await db.all("SELECT id, email, criado_em FROM admins WHERE status = 'pendente' ORDER BY criado_em DESC");
+    const pedidos = await db.all("SELECT id, email, regiao_solicitada, criado_em FROM admins WHERE status = 'pendente' ORDER BY criado_em DESC");
     res.json(pedidos);
   } catch (err) {
     res.status(500).json({ erro: 'Erro: ' + err.message });
@@ -178,7 +184,9 @@ router.post('/pedidos/:id/aprovar', checarAdminGeral, async (req, res) => {
   try {
     const pedido = await db.get('SELECT * FROM admins WHERE id = ?', [req.params.id]);
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
-    await db.run("UPDATE admins SET status = 'aprovado' WHERE id = ?", [pedido.id]);
+    // O admin geral pode confirmar a região pedida ou trocar por outra na hora de aprovar
+    const regiao = req.body.regiao ? normalizarRegiao(req.body.regiao) : (pedido.regiao_solicitada || 'ambos');
+    await db.run("UPDATE admins SET status = 'aprovado', regiao = ? WHERE id = ?", [regiao, pedido.id]);
     enviarEmailAdminAprovado({ destinatario: pedido.email }).catch(err => console.error('Erro ao avisar aprovação:', err.message));
     res.json({ mensagem: 'Aprovado!' });
   } catch (err) {
@@ -202,7 +210,7 @@ router.post('/pedidos/:id/negar', checarAdminGeral, async (req, res) => {
 // ── Lista todos os administradores aprovados (só admin geral) ──
 router.get('/lista', checarAdminGeral, async (req, res) => {
   try {
-    const admins = await db.all("SELECT id, email, admin_geral, criado_em FROM admins WHERE status = 'aprovado' ORDER BY admin_geral DESC, criado_em ASC");
+    const admins = await db.all("SELECT id, email, admin_geral, regiao, criado_em FROM admins WHERE status = 'aprovado' ORDER BY admin_geral DESC, criado_em ASC");
     res.json(admins);
   } catch (err) {
     res.status(500).json({ erro: 'Erro: ' + err.message });
