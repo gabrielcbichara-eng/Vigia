@@ -47,6 +47,63 @@ Usuários reportam problemas urbanos (buracos, esgoto, postes apagados, etc.) e 
 
 ---
 
+## Propósito e estratégia (decidido em nov/2026)
+
+### Para que serve o VIGIA
+- **Manifestação civil pacífica e digital.** O VIGIA **não tem fins lucrativos** nem função comercial, pelo menos nas primeiras etapas.
+- Objetivo: **juntar dados** sobre problemas de infraestrutura e **pressionar a prefeitura pela opinião pública**.
+- Se a prefeitura não resolver, os dados acumulados viram **prova para uma ação civil pública**.
+
+### Como a pressão aumenta, passo a passo
+Registro do cidadão → protocolo oficial na prefeitura → pressão pública (mapa, fórum, rankings) → dossiê → ação judicial
+
+### Caminho jurídico (os dois em paralelo)
+1. **Criar já uma associação civil** (ex.: "Associação VIGIA"). Pela Lei 7.347/85, art. 5º, V, uma associação só pode propor ação civil pública depois de **1 ano de existência**, e o estatuto precisa citar a defesa da ordem urbanística ou da infraestrutura. Então quanto antes criar, antes o prazo começa a contar.
+2. **Enquanto isso**, entregar dossiês ao **Ministério Público do ES** e à **Defensoria Pública**, que podem propor a ação desde já.
+- Atenção: o VIGIA, uma pessoa sozinha ou um app **não podem** propor ação civil pública.
+
+### O protocolo oficial é a prova
+- O "protocolo #ID" que o VIGIA gera hoje é **interno**. Para valer na Justiça, a denúncia precisa de um **protocolo oficial** da prefeitura (156, ouvidoria) ou do órgão responsável. É ele que prova que a prefeitura foi avisada e não resolveu.
+- Depois de denunciar no VIGIA, o cidadão recebe uma **recomendação para fazer a denúncia no canal oficial** e **informar o número do protocolo** no app.
+- Quem não informar o protocolo recebe **lembretes por e-mail** (e push no PWA), por exemplo no dia seguinte, em 3 dias e em 7 dias. Os lembretes **param sozinhos** quando o protocolo é informado. O e-mail traz um link direto para o canal oficial. É preciso o consentimento do cidadão (LGPD).
+- O fórum mostra **dois números separados**: denúncias "registradas" e "protocoladas".
+
+### Os 4 status da denúncia
+| Status | O que significa | Para que serve |
+|---|---|---|
+| Registrada | Tem foto e local no VIGIA, sem protocolo oficial | Pressão pública |
+| Protocolada | O cidadão informou o nº do protocolo oficial | Prova: o prazo de omissão começa a contar |
+| Vencida | Passou do prazo razoável sem solução | Entra no dossiê para o MP, a Defensoria ou a associação |
+| Resolvida | O cidadão confirma com uma foto nova | Ranking dos órgãos |
+
+### Regras da foto (anti-fraude)
+- **Foto obrigatória** em toda denúncia.
+- **Só a câmera ao vivo do app**, sem galeria. O VIGIA é um **PWA**, um site adicionado à tela inicial do celular. O `<input type="file" capture>` comum **não basta**, porque alguns celulares ainda deixam escolher da galeria. É preciso abrir a câmera dentro da página (`getUserMedia`) e capturar a imagem direto. Exige HTTPS.
+- **GPS e horário gravados pelo app no momento da foto.** O navegador costuma apagar esses dados do arquivo. A denúncia é recusada se a precisão estiver ruim (pior que ~50 m) ou se o ponto estiver longe do local marcado (mais de ~100 m).
+- **Impressão digital da foto (hash SHA-256)** salva no envio, para provar que a imagem não foi alterada depois.
+- **Sem sinal:** a denúncia fica guardada no celular (IndexedDB) e é enviada depois, com o horário original. No iPhone, o envio acontece quando o app é aberto de novo.
+- **A IA não prova que uma foto é real.** Ela checa coerência ("é mesmo um buraco?") e marca o que parecer suspeito. Os casos marcados vão para **revisão humana**.
+- **LGPD:** borrar rostos e placas antes de publicar.
+
+### O que o código atual ainda não faz (pendências)
+- [ ] Foto obrigatória (hoje é opcional no `POST /api/denuncias`)
+- [ ] Câmera ao vivo com `getUserMedia` (hoje `app/vigia-app.html` usa `<input type="file" capture>`, que permite galeria)
+- [ ] GPS e horário da captura + limite de distância e de precisão
+- [ ] Hash SHA-256 da foto
+- [ ] Campo "nº do protocolo oficial" + os 4 status (hoje: aberta/em_andamento/resolvida)
+- [ ] Lembretes por e-mail e push até o protocolo ser informado
+- [ ] Contadores "registradas x protocoladas" no fórum
+- [ ] Fila de moderação humana para fotos marcadas pela IA
+- [ ] Borrar rostos e placas
+- [ ] Exportar dossiê (por órgão, por bairro, por período) para o MP e a Defensoria
+
+### Perguntas em aberto
+- O canal oficial de Vitória dá o número de protocolo na hora? Dá para consultar o status pelo número?
+- Quem faz a moderação humana (Gabriel, voluntários, Gerando Falcões em Piranema)?
+- Que prazo vale como "razoável": um prazo fixo por tipo de problema ou o prazo que cada órgão divulga?
+
+---
+
 ## Estrutura de arquivos
 
 ```
